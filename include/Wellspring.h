@@ -74,12 +74,6 @@ typedef struct Wellspring_FontRange
 	uint8_t oversampleV;
 } Wellspring_FontRange;
 
-typedef struct Wellspring_GlyphQuad
-{
-	float x0, y0, s0, t0; // top-left
-	float x1, y1, s1, t1; // bottom-right;
-} Wellspring_GlyphQuad;
-
 typedef struct Wellspring_Color
 {
 	uint8_t r, g, b, a;
@@ -95,7 +89,7 @@ typedef struct Wellspring_Vertex
 /* API definition */
 
 WELLSPRINGAPI Wellspring_Packer* Wellspring_CreatePacker(
-	uint8_t *fontBytes,
+	const uint8_t *fontBytes,
 	uint32_t fontBytesLength,
 	uint32_t width,
 	uint32_t height,
@@ -109,22 +103,23 @@ WELLSPRINGAPI uint32_t Wellspring_PackFontRanges(
 	uint32_t numRanges
 );
 
-/* This data must be uploaded to a texture before you render!
+/* Copies pixel data into the given byte array.
+ * This data must be uploaded to a texture before you render!
  * The pixel data also becomes outdated if you call PackFontRanges.
  * Length is width * height.
  */
 WELLSPRINGAPI void Wellspring_GetPixels(
 	Wellspring_Packer *packer,
-	uint8_t **pData
+	uint8_t *pData
 );
 
 /* Batches are not thread-safe, recommend one batch per thread. */
-WELLSPRINGAPI Wellspring_TextBatch* Wellspring_TextBatchCreate();
+WELLSPRINGAPI Wellspring_TextBatch* Wellspring_CreateTextBatch();
 
 /* Also restarts the batch */
-WELLSPRINGAPI void Wellspring_TextBatchStart(Wellspring_TextBatch *textBatch);
+WELLSPRINGAPI void Wellspring_StartTextBatch(Wellspring_TextBatch *textBatch);
 
-WELLSPRINGAPI uint8_t Wellspring_DrawTextBatched(
+WELLSPRINGAPI uint8_t Wellspring_Draw(
 	Wellspring_TextBatch *textBatch,
 	Wellspring_Packer *packer,
 	float x,
@@ -135,20 +130,19 @@ WELLSPRINGAPI uint8_t Wellspring_DrawTextBatched(
 	uint32_t strLengthInBytes
 );
 
-WELLSPRINGAPI void Wellspring_TextBatchGetBufferLengths(
+WELLSPRINGAPI void Wellspring_GetBufferLengths(
 	Wellspring_TextBatch *textBatch,
-	uint32_t *pVertexLength,
-	uint32_t *pIndexLength
+	uint32_t *pVertexCount,
+	uint32_t *pIndexCount
 );
 
-WELLSPRINGAPI void Wellspring_TextBatchGetBuffers(
+WELLSPRINGAPI void Wellspring_GetBufferData(
 	Wellspring_TextBatch *textBatch,
-	Wellspring_Vertex **pVertexBuffer,
-	uint32_t **pIndexBuffer
+	Wellspring_Vertex *pVertexBuffer,
+	uint32_t *pIndexBuffer
 );
 
-WELLSPRINGAPI void Wellspring_TextBatchDestroy(Wellspring_TextBatch *textBatch);
-
+WELLSPRINGAPI void Wellspring_DestroyTextBatch(Wellspring_TextBatch *textBatch);
 WELLSPRINGAPI void Wellspring_DestroyPacker(Wellspring_Packer *packer);
 
 /* Function defines */
