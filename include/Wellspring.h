@@ -103,14 +103,13 @@ WELLSPRINGAPI uint32_t Wellspring_PackFontRanges(
 	uint32_t numRanges
 );
 
-/* Copies pixel data into the given byte array.
+/* Returns a pointer to an array of rasterized pixels of the packed font.
  * This data must be uploaded to a texture before you render!
- * The pixel data also becomes outdated if you call PackFontRanges.
+ * The pixel data becomes outdated if you call PackFontRanges.
  * Length is width * height.
  */
-WELLSPRINGAPI void Wellspring_GetPixels(
-	Wellspring_Packer *packer,
-	uint8_t *pData
+WELLSPRINGAPI uint8_t* Wellspring_GetPixelDataPointer(
+	Wellspring_Packer *packer
 );
 
 /* Batches are not thread-safe, recommend one batch per thread. */
@@ -138,8 +137,10 @@ WELLSPRINGAPI void Wellspring_GetBufferLengths(
 
 WELLSPRINGAPI void Wellspring_GetBufferData(
 	Wellspring_TextBatch *textBatch,
-	Wellspring_Vertex *pVertexBuffer,
-	uint32_t *pIndexBuffer
+	Wellspring_Vertex **pVertexBuffer,
+	uint32_t *pVertexBufferLengthInBytes,
+	uint32_t **pIndexBuffer,
+	uint32_t *pIndexBufferLengthInBytes
 );
 
 WELLSPRINGAPI void Wellspring_DestroyTextBatch(Wellspring_TextBatch *textBatch);

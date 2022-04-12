@@ -214,16 +214,11 @@ uint32_t Wellspring_PackFontRanges(
 	return 1;
 }
 
-void Wellspring_GetPixels(
-	Wellspring_Packer *packer,
-	uint8_t *pData
+uint8_t* Wellspring_GetPixelDataPointer(
+	Wellspring_Packer *packer
 ) {
 	Packer* myPacker = (Packer*) packer;
-	Wellspring_memcpy(
-		pData,
-		myPacker->pixels,
-		sizeof(uint8_t) * myPacker->width * myPacker->height
-	);
+	return myPacker->pixels;
 }
 
 Wellspring_TextBatch* Wellspring_CreateTextBatch()
@@ -389,20 +384,16 @@ void Wellspring_GetBufferLengths(
 
 void Wellspring_GetBufferData(
 	Wellspring_TextBatch *textBatch,
-	Wellspring_Vertex *pVertexBuffer,
-	uint32_t *pIndexBuffer
+	Wellspring_Vertex **pVertexBuffer,
+	uint32_t *pVertexBufferLengthInBytes,
+	uint32_t **pIndexBuffer,
+	uint32_t *pIndexBufferLengthInBytes
 ) {
 	Batch *batch = (Batch*) textBatch;
-	Wellspring_memcpy(
-		pVertexBuffer,
-		batch->vertices,
-		sizeof(Wellspring_Vertex) * batch->vertexCount
-	);
-	Wellspring_memcpy(
-		pIndexBuffer,
-		batch->indices,
-		sizeof(uint32_t) * batch->indexCount
-	);
+	*pVertexBuffer = batch->vertices;
+	*pVertexBufferLengthInBytes = batch->vertexCount * sizeof(Wellspring_Vertex);
+	*pIndexBuffer = batch->indices;
+	*pIndexBufferLengthInBytes = batch->indexCount * sizeof(uint32_t);
 }
 
 void Wellspring_DestroyTextBatch(Wellspring_TextBatch *textBatch)
