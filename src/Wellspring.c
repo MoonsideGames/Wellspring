@@ -24,7 +24,7 @@
  *
  */
 
-#include "wellspring.h"
+#include "Wellspring.h"
 #include "stb_rect_pack.h"
 
 #define STBTT_malloc(x,u) ((void)(u),Wellspring_malloc(x))
