@@ -424,14 +424,17 @@ int main(int arg, char **argv)
 
 #ifdef STB_TRUETYPE_IMPLEMENTATION
    // #define your own (u)stbtt_int8/16/32 before including to override this
-   #ifndef stbtt_uint8
-   typedef unsigned char   stbtt_uint8;
-   typedef signed   char   stbtt_int8;
-   typedef unsigned short  stbtt_uint16;
-   typedef signed   short  stbtt_int16;
-   typedef unsigned int    stbtt_uint32;
-   typedef signed   int    stbtt_int32;
-   #endif
+   /* this is a lie - C99 cannot check the existence of or override typedefs -cosmonaut */
+   /*
+    * #ifndef stbtt_uint8
+    * typedef unsigned char   stbtt_uint8;
+    * typedef signed   char   stbtt_int8;
+    * typedef unsigned short  stbtt_uint16;
+    * typedef signed   short  stbtt_int16;
+    * typedef unsigned int    stbtt_uint32;
+    * typedef signed   int    stbtt_int32;
+    * #endif
+    */
 
    typedef char stbtt__check_size32[sizeof(stbtt_int32)==4 ? 1 : -1];
    typedef char stbtt__check_size16[sizeof(stbtt_int16)==2 ? 1 : -1];

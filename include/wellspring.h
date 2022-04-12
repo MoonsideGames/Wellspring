@@ -62,8 +62,8 @@ WELLSPRINGAPI uint32_t Wellspring_LinkedVersion(void);
 
 /* Type definitions */
 
-typedef struct Wellspring_Font Wellspring_Font;
 typedef struct Wellspring_Packer Wellspring_Packer;
+typedef struct Wellspring_TextBatch Wellspring_TextBatch;
 
 typedef struct Wellspring_FontRange
 {
@@ -80,89 +80,113 @@ typedef struct Wellspring_GlyphQuad
 	float x1, y1, s1, t1; // bottom-right;
 } Wellspring_GlyphQuad;
 
+typedef struct Wellspring_Color
+{
+	uint8_t r, g, b, a;
+} Wellspring_Color;
+
+typedef struct Wellspring_Vertex
+{
+	float x, y, z;
+	float u, v;
+	uint8_t r, g, b, a;
+} Wellspring_Vertex;
+
 /* API definition */
 
-WELLSPRINGAPI Wellspring_Font* Wellspring_LoadFont(
-	const uint8_t *fontData, /* can be freed after */
-	uint32_t fontDataLength
-);
-
-WELLSPRINGAPI void Wellspring_GetFontMetrics(
-	Wellspring_Font *font,
-	int32_t *pAscent,
-	int32_t *pDescent,
-	int32_t *pLineGap
-);
-
-WELLSPRINGAPI int32_t Wellspring_FindGlyphIndex(
-	Wellspring_Font *font,
-	int32_t codepoint
-);
-
-WELLSPRINGAPI void Wellspring_GetGlyphMetrics(
-	Wellspring_Font *font,
-	int32_t glyphIndex,
-	int32_t *pAdvance,
-	int32_t *pLeftSideBearing
-);
-
-WELLSPRINGAPI int32_t Wellspring_GetGlyphKernAdvance(
-	Wellspring_Font *font,
-	int32_t glyphIndexA,
-	int32_t glyphIndexB
-);
-
 WELLSPRINGAPI Wellspring_Packer* Wellspring_CreatePacker(
-	uint8_t *pixels,
+	uint8_t *fontBytes,
+	uint32_t fontBytesLength,
 	uint32_t width,
 	uint32_t height,
-	uint32_t strideInBytes,
-	uint32_t padding
+	uint32_t strideInBytes, /* 0 means the buffer is tightly packed. */
+	uint32_t padding /* A sensible value here is 1 to allow bilinear filtering. */
 );
 
 WELLSPRINGAPI uint32_t Wellspring_PackFontRanges(
 	Wellspring_Packer *packer,
-	Wellspring_Font *font,
 	Wellspring_FontRange *ranges,
 	uint32_t numRanges
 );
 
-WELLSPRINGAPI uint8_t* Wellspring_GetPixels(
-	Wellspring_Packer *packer
+/* This data must be uploaded to a texture before you render!
+ * The pixel data also becomes outdated if you call PackFontRanges.
+ * Length is width * height.
+ */
+WELLSPRINGAPI void Wellspring_GetPixels(
+	Wellspring_Packer *packer,
+	uint8_t **pData
 );
 
-WELLSPRINGAPI uint32_t Wellspring_GetGlyphQuad(
+/* Batches are not thread-safe, recommend one batch per thread. */
+WELLSPRINGAPI Wellspring_TextBatch* Wellspring_TextBatchCreate();
+
+/* Also restarts the batch */
+WELLSPRINGAPI void Wellspring_TextBatchStart(Wellspring_TextBatch *textBatch);
+
+WELLSPRINGAPI uint8_t Wellspring_DrawTextBatched(
+	Wellspring_TextBatch *textBatch,
 	Wellspring_Packer *packer,
-	int32_t glyphIndex,
-	Wellspring_GlyphQuad *pGlyphQuad
+	float x,
+	float y,
+	float depth,
+	Wellspring_Color *color,
+	const uint8_t *strBytes,
+	uint32_t strLengthInBytes
 );
+
+WELLSPRINGAPI void Wellspring_TextBatchGetBufferLengths(
+	Wellspring_TextBatch *textBatch,
+	uint32_t *pVertexLength,
+	uint32_t *pIndexLength
+);
+
+WELLSPRINGAPI void Wellspring_TextBatchGetBuffers(
+	Wellspring_TextBatch *textBatch,
+	Wellspring_Vertex **pVertexBuffer,
+	uint32_t **pIndexBuffer
+);
+
+WELLSPRINGAPI void Wellspring_TextBatchDestroy(Wellspring_TextBatch *textBatch);
 
 WELLSPRINGAPI void Wellspring_DestroyPacker(Wellspring_Packer *packer);
-WELLSPRINGAPI void Wellspring_DestroyFont(Wellspring_Font *font);
 
 /* Function defines */
 
 #ifdef USE_SDL2
 
 #define Wellspring_malloc SDL_malloc
+#define Wellspring_realloc SDL_realloc
 #define Wellspring_free SDL_free
 #define Wellspring_memcpy SDL_memcpy
+#define Wellspring_memset SDL_memset
 #define Wellspring_ifloor(x) ((int) SDL_floorf(x))
 #define Wellspring_iceil(x) ((int) SDL_ceilf(x))
 #define Wellspring_sqrt SDL_sqrt
 #define Wellspring_pow SDL_pow
-
-/* FIXME: finish these defines */
+#define Wellspring_fmod SDL_fmod
+#define Wellspring_cos SDL_cos
+#define Wellspring_acos SDL_acos
+#define Wellspring_fabs SDL_fabs
+#define Wellspring_assert SDL_assert
+#define Wellspring_strlen SDL_strlen
 
 #else
 
 #define Wellspring_malloc malloc
+#define Wellspring_realloc realloc
 #define Wellspring_free free
 #define Wellspring_memcpy memcpy
 #define Wellspring_ifloor(x) ((int) floor(x))
 #define Wellspring_iceil(x) ((int) ceil(x))
 #define Wellspring_sqrt sqrt
 #define Wellspring_pow pow
+#define Wellspring_fmod fmod
+#define Wellspring_cos cos
+#define Wellspring_acos acos
+#define Wellspring_fabs fabs
+#define Wellspring_assert assert
+#define Wellspring_strlen strlen
 
 #endif
 
