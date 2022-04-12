@@ -188,7 +188,15 @@ uint32_t Wellspring_PackFontRanges(
 		stbPackRanges[i].chardata_for_range = Wellspring_malloc(sizeof(stbtt_packedchar) * currentFontRange->numChars);
 	}
 
-	stbtt_PackFontRanges(myPacker->context, myPacker->fontBytes, 0, stbPackRanges, numRanges);
+	if (!stbtt_PackFontRanges(myPacker->context, myPacker->fontBytes, 0, stbPackRanges, numRanges))
+	{
+		/* Font packing failed, time to bail */
+		for (i = 0; i < numRanges; i += 1)
+		{
+			Wellspring_free(stbPackRanges[i].chardata_for_range);
+		}
+		return 0;
+	}
 
 	myPacker->rangeCount += numRanges;
 	myPacker->ranges = Wellspring_realloc(myPacker->ranges, sizeof(CharRange) * myPacker->rangeCount);
@@ -202,6 +210,8 @@ uint32_t Wellspring_PackFontRanges(
 	}
 
 	myPacker->rangeCount += numRanges;
+
+	return 1;
 }
 
 void Wellspring_GetPixels(
@@ -394,7 +404,14 @@ void Wellspring_TextBatchDestroy(Wellspring_TextBatch *textBatch)
 void Wellspring_DestroyPacker(Wellspring_Packer *packer)
 {
 	Packer* myPacker = (Packer*) packer;
+	uint32_t i;
 
+	for (i = 0; i < myPacker->rangeCount; i += 1)
+	{
+		Wellspring_free(myPacker->ranges[i].data);
+	}
+
+	Wellspring_free(myPacker->ranges);
 	Wellspring_free(myPacker->fontBytes);
 	Wellspring_free(myPacker->context);
 	Wellspring_free(myPacker->pixels);
