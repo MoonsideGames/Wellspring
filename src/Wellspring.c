@@ -344,17 +344,17 @@ static float Wellspring_INTERNAL_GetVerticalAlignOffset(
 	Wellspring_VerticalAlignment verticalAlignment,
 	float scale
 ) {
-	if (verticalAlignment == WELLSPRING_VERTICALALIGNMENT_TOP)
+	if (verticalAlignment == WELLSPRING_VERTICALALIGNMENT_BASELINE)
+	{
+		return 0;
+	}
+	else if (verticalAlignment == WELLSPRING_VERTICALALIGNMENT_TOP)
 	{
 		return scale * font->ascent;
 	}
 	else if (verticalAlignment == WELLSPRING_VERTICALALIGNMENT_MIDDLE)
 	{
 		return scale * (font->ascent + font->descent) / 2.0f;
-	}
-	else if (verticalAlignment == WELLSPRING_VERTICALALIGNMENT_BASELINE)
-	{
-		return 0;
 	}
 	else /* BOTTOM */
 	{
