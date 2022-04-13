@@ -1,4 +1,4 @@
-/* Wellspring - A very simple font rendering system
+/* Wellspring - An immediate mode font rendering system in C
  *
  * Copyright (c) 2022 Evan Hemsley
  *
