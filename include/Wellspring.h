@@ -67,7 +67,7 @@ typedef struct Wellspring_TextBatch Wellspring_TextBatch;
 
 typedef struct Wellspring_FontRange
 {
-	uint32_t fontSize;
+	float fontSize;
 	uint32_t firstCodepoint;
 	uint32_t numChars;
 	uint8_t oversampleH;

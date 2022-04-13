@@ -241,7 +241,7 @@ uint32_t Wellspring_PackFontRanges(
 	for (i = 0; i < numRanges; i += 1)
 	{
 		currentFontRange = &ranges[i];
-		stbPackRanges[i].font_size = (float) currentFontRange->fontSize;
+		stbPackRanges[i].font_size = currentFontRange->fontSize;
 		stbPackRanges[i].first_unicode_codepoint_in_range = currentFontRange->firstCodepoint;
 		stbPackRanges[i].array_of_unicode_codepoints = NULL;
 		stbPackRanges[i].num_chars = currentFontRange->numChars;
