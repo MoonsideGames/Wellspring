@@ -89,6 +89,8 @@ typedef struct Batch
 	uint32_t *indices;
 	uint32_t indexCount;
 	uint32_t indexCapacity;
+
+	Packer *currentPacker;
 } Batch;
 
 /* UTF-8 Decoder */
@@ -236,16 +238,18 @@ Wellspring_TextBatch* Wellspring_CreateTextBatch()
 	return (Wellspring_TextBatch*) batch;
 }
 
-void Wellspring_StartTextBatch(Wellspring_TextBatch *textBatch)
-{
+void Wellspring_StartTextBatch(
+	Wellspring_TextBatch *textBatch,
+	Wellspring_Packer *packer
+) {
 	Batch *batch = (Batch*) textBatch;
+	batch->currentPacker = (Packer*) packer;
 	batch->vertexCount = 0;
 	batch->indexCount = 0;
 }
 
 uint8_t Wellspring_Draw(
 	Wellspring_TextBatch *textBatch,
-	Wellspring_Packer *packer,
 	float x,
 	float y,
 	float depth,
@@ -254,7 +258,7 @@ uint8_t Wellspring_Draw(
 	uint32_t strLength
 ) {
 	Batch *batch = (Batch*) textBatch;
-	Packer *myPacker = (Packer*) packer;
+	Packer *myPacker = batch->currentPacker;
 	uint32_t decodeState = 0;
 	uint32_t codepoint;
 	int32_t glyphIndex;
@@ -370,16 +374,6 @@ uint8_t Wellspring_Draw(
 	}
 
 	return 1;
-}
-
-void Wellspring_GetBufferLengths(
-	Wellspring_TextBatch *textBatch,
-	uint32_t *pVertexCount,
-	uint32_t *pIndexCount
-) {
-	Batch *batch = (Batch*) textBatch;
-	*pVertexCount = batch->vertexCount;
-	*pIndexCount = batch->indexCount;
 }
 
 void Wellspring_GetBufferData(

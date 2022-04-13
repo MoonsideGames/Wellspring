@@ -116,23 +116,19 @@ WELLSPRINGAPI uint8_t* Wellspring_GetPixelDataPointer(
 WELLSPRINGAPI Wellspring_TextBatch* Wellspring_CreateTextBatch();
 
 /* Also restarts the batch */
-WELLSPRINGAPI void Wellspring_StartTextBatch(Wellspring_TextBatch *textBatch);
+WELLSPRINGAPI void Wellspring_StartTextBatch(
+	Wellspring_TextBatch *textBatch,
+	Wellspring_Packer *packer
+);
 
 WELLSPRINGAPI uint8_t Wellspring_Draw(
 	Wellspring_TextBatch *textBatch,
-	Wellspring_Packer *packer,
 	float x,
 	float y,
 	float depth,
 	Wellspring_Color *color,
 	const uint8_t *strBytes,
 	uint32_t strLengthInBytes
-);
-
-WELLSPRINGAPI void Wellspring_GetBufferLengths(
-	Wellspring_TextBatch *textBatch,
-	uint32_t *pVertexCount,
-	uint32_t *pIndexCount
 );
 
 WELLSPRINGAPI void Wellspring_GetBufferData(
