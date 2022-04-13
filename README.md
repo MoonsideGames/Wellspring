@@ -9,16 +9,18 @@ Wellspring uses stb_truetype to rasterize and pack fonts quickly.
 
 Dependencies
 ------------
-Wellspring depends on the C runtime, but SDL2 can be optionally depended upon instead if your application prefers it.
+Wellspring depends on the C runtime, but SDL2 can be optionally depended upon instead if your application prefers it by defining USE_SDL2.
 
 Building Wellspring
 -------------------
-For *nix platforms, use Cmake:
+For *nix platforms, use CMake:
 
 	$ mkdir build/
 	$ cd build
 	$ cmake ../
 	$ make
+
+For Windows, see the 'visualc/' directory.
 
 License
 -------

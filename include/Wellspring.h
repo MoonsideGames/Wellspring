@@ -142,47 +142,6 @@ WELLSPRINGAPI void Wellspring_GetBufferData(
 WELLSPRINGAPI void Wellspring_DestroyTextBatch(Wellspring_TextBatch *textBatch);
 WELLSPRINGAPI void Wellspring_DestroyPacker(Wellspring_Packer *packer);
 
-/* Function defines */
-
-#ifdef USE_SDL2
-
-#define Wellspring_malloc SDL_malloc
-#define Wellspring_realloc SDL_realloc
-#define Wellspring_free SDL_free
-#define Wellspring_memcpy SDL_memcpy
-#define Wellspring_memset SDL_memset
-#define Wellspring_ifloor(x) ((int) SDL_floorf(x))
-#define Wellspring_iceil(x) ((int) SDL_ceilf(x))
-#define Wellspring_sqrt SDL_sqrt
-#define Wellspring_pow SDL_pow
-#define Wellspring_fmod SDL_fmod
-#define Wellspring_cos SDL_cos
-#define Wellspring_acos SDL_acos
-#define Wellspring_fabs SDL_fabs
-#define Wellspring_assert SDL_assert
-#define Wellspring_strlen SDL_strlen
-#define Wellspring_sort SDL_qsort
-
-#else
-
-#define Wellspring_malloc malloc
-#define Wellspring_realloc realloc
-#define Wellspring_free free
-#define Wellspring_memcpy memcpy
-#define Wellspring_ifloor(x) ((int) floor(x))
-#define Wellspring_iceil(x) ((int) ceil(x))
-#define Wellspring_sqrt sqrt
-#define Wellspring_pow pow
-#define Wellspring_fmod fmod
-#define Wellspring_cos cos
-#define Wellspring_acos acos
-#define Wellspring_fabs fabs
-#define Wellspring_assert assert
-#define Wellspring_strlen strlen
-#define Wellspring_sort qsort
-
-#endif
-
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

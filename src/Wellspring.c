@@ -26,6 +26,57 @@
 
 #include "Wellspring.h"
 
+ /* Function defines */
+
+#ifdef USE_SDL2
+
+#define Wellspring_malloc SDL_malloc
+#define Wellspring_realloc SDL_realloc
+#define Wellspring_free SDL_free
+#define Wellspring_memcpy SDL_memcpy
+#define Wellspring_memset SDL_memset
+#define Wellspring_ifloor(x) ((int) SDL_floorf(x))
+#define Wellspring_iceil(x) ((int) SDL_ceilf(x))
+#define Wellspring_sqrt SDL_sqrt
+#define Wellspring_pow SDL_pow
+#define Wellspring_fmod SDL_fmod
+#define Wellspring_cos SDL_cos
+#define Wellspring_acos SDL_acos
+#define Wellspring_fabs SDL_fabs
+#define Wellspring_assert SDL_assert
+#define Wellspring_strlen SDL_strlen
+#define Wellspring_sort SDL_qsort
+
+#else
+
+#ifdef _MSC_VER
+
+#include <assert.h>
+#include <stdlib.h>
+#include <search.h>
+#include <math.h>
+#include <string.h>
+#endif
+
+#define Wellspring_malloc malloc
+#define Wellspring_realloc realloc
+#define Wellspring_free free
+#define Wellspring_memcpy memcpy
+#define Wellspring_memset memset
+#define Wellspring_ifloor(x) ((int) floor(x))
+#define Wellspring_iceil(x) ((int) ceil(x))
+#define Wellspring_sqrt sqrt
+#define Wellspring_pow pow
+#define Wellspring_fmod fmod
+#define Wellspring_cos cos
+#define Wellspring_acos acos
+#define Wellspring_fabs fabs
+#define Wellspring_assert assert
+#define Wellspring_strlen strlen
+#define Wellspring_sort qsort
+
+#endif
+
 #define STBTT_malloc(x,u) ((void)(u),Wellspring_malloc(x))
 #define STBTT_free(x,u) ((void)(u),Wellspring_free(x))
 #define STBTT_memcpy Wellspring_memcpy
@@ -70,7 +121,7 @@ typedef int32_t stbtt_int32;
 typedef struct CharRange
 {
 	stbtt_packedchar *data;
-	int32_t firstCodepoint;
+	uint32_t firstCodepoint;
 	uint32_t charCount;
 } CharRange;
 
@@ -183,14 +234,14 @@ uint32_t Wellspring_PackFontRanges(
 ) {
 	Packer *myPacker = (Packer*) packer;
 	Wellspring_FontRange *currentFontRange;
-	stbtt_pack_range stbPackRanges[numRanges];
+	stbtt_pack_range* stbPackRanges = Wellspring_malloc(sizeof(stbtt_pack_range) * numRanges);
 	CharRange *currentCharRange;
 	uint32_t i;
 
 	for (i = 0; i < numRanges; i += 1)
 	{
 		currentFontRange = &ranges[i];
-		stbPackRanges[i].font_size = currentFontRange->fontSize;
+		stbPackRanges[i].font_size = (float) currentFontRange->fontSize;
 		stbPackRanges[i].first_unicode_codepoint_in_range = currentFontRange->firstCodepoint;
 		stbPackRanges[i].array_of_unicode_codepoints = NULL;
 		stbPackRanges[i].num_chars = currentFontRange->numChars;
