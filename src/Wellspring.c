@@ -25,7 +25,6 @@
  */
 
 #include "Wellspring.h"
-#include "stb_rect_pack.h"
 
 #define STBTT_malloc(x,u) ((void)(u),Wellspring_malloc(x))
 #define STBTT_free(x,u) ((void)(u),Wellspring_free(x))
@@ -42,6 +41,9 @@
 #define STBTT_assert Wellspring_assert
 #define STBTT_strlen Wellspring_strlen
 
+#define STBRP_SORT Wellspring_sort
+#define STBRP_ASSERT Wellspring_assert
+
 typedef uint8_t stbtt_uint8;
 typedef int8_t stbtt_int8;
 typedef uint16_t stbtt_uint16;
@@ -49,10 +51,17 @@ typedef int16_t stbtt_int16;
 typedef uint32_t stbtt_uint32;
 typedef int32_t stbtt_int32;
 
+#pragma GCC diagnostic ignored "-Wunused-function"
+
+#define STBRP_STATIC
+#define STB_RECT_PACK_IMPLEMENTATION
+#include "stb_rect_pack.h"
+
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
-#pragma GCC diagnostic ignored "-Wunused-function"
 #include "stb_truetype.h"
+
+#pragma GCC diagnostic warning "-Wunused-function"
 
 #define INITIAL_QUAD_CAPACITY 128
 
@@ -200,8 +209,7 @@ uint32_t Wellspring_PackFontRanges(
 		return 0;
 	}
 
-	myPacker->rangeCount += numRanges;
-	myPacker->ranges = Wellspring_realloc(myPacker->ranges, sizeof(CharRange) * myPacker->rangeCount);
+	myPacker->ranges = Wellspring_realloc(myPacker->ranges, sizeof(CharRange) * (myPacker->rangeCount + numRanges));
 
 	for (i = 0; i < numRanges; i += 1)
 	{
@@ -212,7 +220,6 @@ uint32_t Wellspring_PackFontRanges(
 	}
 
 	myPacker->rangeCount += numRanges;
-
 	return 1;
 }
 
@@ -267,7 +274,7 @@ uint8_t Wellspring_Draw(
 	stbtt_aligned_quad charQuad;
 	uint32_t vertexBufferIndex;
 	uint32_t indexBufferIndex;
-	uint32_t i;
+	uint32_t i, j;
 
 	for (i = 0; i < strLength; i += 1)
 	{
@@ -282,16 +289,25 @@ uint8_t Wellspring_Draw(
 			continue;
 		}
 
+		rangeData = NULL;
+
 		/* Find the packed char data */
-		for (i = 0; i < myPacker->rangeCount; i += 1)
+		for (j = 0; j < myPacker->rangeCount; j += 1)
 		{
 			if (
-				codepoint >= myPacker->ranges[i].firstCodepoint &&
-				codepoint < myPacker->ranges[i].firstCodepoint + myPacker->ranges[i].charCount
+				codepoint >= myPacker->ranges[j].firstCodepoint &&
+				codepoint < myPacker->ranges[j].firstCodepoint + myPacker->ranges[j].charCount
 			) {
-				rangeData = myPacker->ranges[i].data;
-				glyphIndex = codepoint - myPacker->ranges[i].firstCodepoint;
+				rangeData = myPacker->ranges[j].data;
+				glyphIndex = codepoint - myPacker->ranges[j].firstCodepoint;
+				break;
 			}
+		}
+
+		if (rangeData == NULL)
+		{
+			/* Requested char wasn't packed! */
+			return 0;
 		}
 
 		stbtt_GetPackedQuad(
@@ -402,6 +418,8 @@ void Wellspring_DestroyPacker(Wellspring_Packer *packer)
 {
 	Packer* myPacker = (Packer*) packer;
 	uint32_t i;
+
+	stbtt_PackEnd(myPacker->context);
 
 	for (i = 0; i < myPacker->rangeCount; i += 1)
 	{

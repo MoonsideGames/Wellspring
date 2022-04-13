@@ -161,6 +161,7 @@ WELLSPRINGAPI void Wellspring_DestroyPacker(Wellspring_Packer *packer);
 #define Wellspring_fabs SDL_fabs
 #define Wellspring_assert SDL_assert
 #define Wellspring_strlen SDL_strlen
+#define Wellspring_sort SDL_qsort
 
 #else
 
@@ -178,6 +179,7 @@ WELLSPRINGAPI void Wellspring_DestroyPacker(Wellspring_Packer *packer);
 #define Wellspring_fabs fabs
 #define Wellspring_assert assert
 #define Wellspring_strlen strlen
+#define Wellspring_sort qsort
 
 #endif
 
