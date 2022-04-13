@@ -123,11 +123,13 @@ typedef struct CharRange
 	stbtt_packedchar *data;
 	uint32_t firstCodepoint;
 	uint32_t charCount;
+	float fontSize;
 } CharRange;
 
 typedef struct Packer
 {
 	uint8_t *fontBytes;
+	stbtt_fontinfo fontInfo;
 
 	stbtt_pack_context *context;
 	uint8_t *pixels;
@@ -210,6 +212,7 @@ Wellspring_Packer* Wellspring_CreatePacker(
 
 	packer->fontBytes = Wellspring_malloc(fontBytesLength);
 	Wellspring_memcpy(packer->fontBytes, fontBytes, fontBytesLength);
+	stbtt_InitFont(&packer->fontInfo, packer->fontBytes, 0);
 
 	packer->context = Wellspring_malloc(sizeof(stbtt_pack_context));
 	packer->pixels = Wellspring_malloc(sizeof(uint8_t) * width * height);
@@ -268,9 +271,12 @@ uint32_t Wellspring_PackFontRanges(
 		currentCharRange->data = stbPackRanges[i].chardata_for_range;
 		currentCharRange->firstCodepoint = stbPackRanges[i].first_unicode_codepoint_in_range;
 		currentCharRange->charCount = stbPackRanges[i].num_chars;
+		currentCharRange->fontSize = stbPackRanges[i].font_size;
 	}
 
 	myPacker->rangeCount += numRanges;
+
+	Wellspring_free(stbPackRanges);
 	return 1;
 }
 
@@ -319,9 +325,10 @@ uint8_t Wellspring_Draw(
 	Packer *myPacker = batch->currentPacker;
 	uint32_t decodeState = 0;
 	uint32_t codepoint;
-	int32_t glyphIndex;
-	int32_t previousGlyphIndex;
+	uint32_t previousCodepoint;
+	int32_t rangeIndex;
 	stbtt_packedchar *rangeData;
+	float rangeFontSize;
 	stbtt_aligned_quad charQuad;
 	uint32_t vertexBufferIndex;
 	uint32_t indexBufferIndex;
@@ -350,7 +357,8 @@ uint8_t Wellspring_Draw(
 				codepoint < myPacker->ranges[j].firstCodepoint + myPacker->ranges[j].charCount
 			) {
 				rangeData = myPacker->ranges[j].data;
-				glyphIndex = codepoint - myPacker->ranges[j].firstCodepoint;
+				rangeIndex = codepoint - myPacker->ranges[j].firstCodepoint;
+				rangeFontSize = myPacker->ranges[j].fontSize;
 				break;
 			}
 		}
@@ -360,16 +368,22 @@ uint8_t Wellspring_Draw(
 			/* Requested char wasn't packed! */
 			return 0;
 		}
+		
+		if (i > 0)
+		{
+			float scale = stbtt_ScaleForPixelHeight(&myPacker->fontInfo, rangeFontSize);
+			x += scale * stbtt_GetCodepointKernAdvance(&myPacker->fontInfo, previousCodepoint, codepoint);
+		}
 
 		stbtt_GetPackedQuad(
 			rangeData,
 			myPacker->width,
 			myPacker->height,
-			glyphIndex,
+			rangeIndex,
 			&x,
 			&y,
 			&charQuad,
-			1
+			0
 		);
 
 		if (batch->vertexCount >= batch->vertexCapacity)
@@ -438,6 +452,8 @@ uint8_t Wellspring_Draw(
 
 		batch->vertexCount += 4;
 		batch->indexCount += 6;
+
+		previousCodepoint = codepoint;
 	}
 
 	return 1;
