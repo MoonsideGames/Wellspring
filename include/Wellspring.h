@@ -62,12 +62,12 @@ WELLSPRINGAPI uint32_t Wellspring_LinkedVersion(void);
 
 /* Type definitions */
 
+typedef struct Wellspring_Font Wellspring_Font;
 typedef struct Wellspring_Packer Wellspring_Packer;
 typedef struct Wellspring_TextBatch Wellspring_TextBatch;
 
 typedef struct Wellspring_FontRange
 {
-	float fontSize;
 	uint32_t firstCodepoint;
 	uint32_t numChars;
 	uint8_t oversampleH;
@@ -86,11 +86,39 @@ typedef struct Wellspring_Vertex
 	uint8_t r, g, b, a;
 } Wellspring_Vertex;
 
+typedef struct Wellspring_Rectangle
+{
+	float x;
+	float y;
+	float w;
+	float h;
+} Wellspring_Rectangle;
+
+typedef enum Wellspring_HorizontalAlignment
+{
+	WELLSPRING_HORIZONTALALIGNMENT_LEFT,
+	WELLSPRING_HORIZONTALALIGNMENT_CENTER,
+	WELLSPRING_HORIZONTALALIGNMENT_RIGHT
+} Wellspring_HorizontalAlignment;
+
+typedef enum Wellspring_VerticalAlignment
+{
+	WELLSPRING_VERTICALALIGNMENT_TOP,
+	WELLSPRING_VERTICALALIGNMENT_MIDDLE,
+	WELLSPRING_VERTICALALIGNMENT_BASELINE,
+	WELLSPRING_VERTICALALIGNMENT_BOTTOM
+} Wellspring_VerticalAlignment;
+
 /* API definition */
 
-WELLSPRINGAPI Wellspring_Packer* Wellspring_CreatePacker(
+WELLSPRINGAPI Wellspring_Font* Wellspring_CreateFont(
 	const uint8_t *fontBytes,
-	uint32_t fontBytesLength,
+	uint32_t fontBytesLength
+);
+
+WELLSPRINGAPI Wellspring_Packer* Wellspring_CreatePacker(
+	Wellspring_Font *font,
+	float fontSize,
 	uint32_t width,
 	uint32_t height,
 	uint32_t strideInBytes, /* 0 means the buffer is tightly packed. */
@@ -121,12 +149,25 @@ WELLSPRINGAPI void Wellspring_StartTextBatch(
 	Wellspring_Packer *packer
 );
 
+WELLSPRINGAPI uint8_t Wellspring_TextBounds(
+	Wellspring_TextBatch *textBatch,
+	float x,
+	float y,
+	Wellspring_HorizontalAlignment horizontalAlignment,
+	Wellspring_VerticalAlignment verticalAlignment,
+	const uint8_t *strBytes,
+	uint32_t strLengthInBytes,
+	Wellspring_Rectangle *pRectangle
+);
+
 WELLSPRINGAPI uint8_t Wellspring_Draw(
 	Wellspring_TextBatch *textBatch,
 	float x,
 	float y,
 	float depth,
 	Wellspring_Color *color,
+	Wellspring_HorizontalAlignment horizontalAlignment,
+	Wellspring_VerticalAlignment verticalAlignment,
 	const uint8_t *strBytes,
 	uint32_t strLengthInBytes
 );
@@ -141,6 +182,7 @@ WELLSPRINGAPI void Wellspring_GetBufferData(
 
 WELLSPRINGAPI void Wellspring_DestroyTextBatch(Wellspring_TextBatch *textBatch);
 WELLSPRINGAPI void Wellspring_DestroyPacker(Wellspring_Packer *packer);
+WELLSPRINGAPI void Wellspring_DestroyFont(Wellspring_Font *font);
 
 #ifdef __cplusplus
 }

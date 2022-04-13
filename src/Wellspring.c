@@ -118,6 +118,16 @@ typedef int32_t stbtt_int32;
 
 /* Structs */
 
+typedef struct Font
+{
+	uint8_t *fontBytes;
+	stbtt_fontinfo fontInfo;
+
+	int32_t ascent;
+	int32_t descent;
+	int32_t lineGap;
+} Font;
+
 typedef struct CharRange
 {
 	stbtt_packedchar *data;
@@ -128,8 +138,8 @@ typedef struct CharRange
 
 typedef struct Packer
 {
-	uint8_t *fontBytes;
-	stbtt_fontinfo fontInfo;
+	Font *font;
+	float fontSize;
 
 	stbtt_pack_context *context;
 	uint8_t *pixels;
@@ -137,6 +147,8 @@ typedef struct Packer
 	uint32_t height;
 	uint32_t strideInBytes;
 	uint32_t padding;
+
+	float scale; /* precomputed at init */
 
 	CharRange *ranges;
 	uint32_t rangeCount;
@@ -200,9 +212,23 @@ uint32_t Wellspring_LinkedVersion(void)
 	return WELLSPRING_COMPILED_VERSION;
 }
 
+Wellspring_Font* Wellspring_CreateFont(
+	const uint8_t* fontBytes,
+	uint32_t fontBytesLength
+) {
+	Font *font = Wellspring_malloc(sizeof(Font));
+
+	font->fontBytes = Wellspring_malloc(fontBytesLength);
+	Wellspring_memcpy(font->fontBytes, fontBytes, fontBytesLength);
+	stbtt_InitFont(&font->fontInfo, font->fontBytes, 0);
+	stbtt_GetFontVMetrics(&font->fontInfo, &font->ascent, &font->descent, &font->lineGap);
+
+	return (Wellspring_Font*) font;
+}
+
 Wellspring_Packer* Wellspring_CreatePacker(
-	const uint8_t *fontBytes,
-	uint32_t fontBytesLength,
+	Wellspring_Font *font,
+	float fontSize,
 	uint32_t width,
 	uint32_t height,
 	uint32_t strideInBytes,
@@ -210,9 +236,8 @@ Wellspring_Packer* Wellspring_CreatePacker(
 ) {
 	Packer *packer = Wellspring_malloc(sizeof(Packer));
 
-	packer->fontBytes = Wellspring_malloc(fontBytesLength);
-	Wellspring_memcpy(packer->fontBytes, fontBytes, fontBytesLength);
-	stbtt_InitFont(&packer->fontInfo, packer->fontBytes, 0);
+	packer->font = (Font*) font;
+	packer->fontSize = fontSize;
 
 	packer->context = Wellspring_malloc(sizeof(stbtt_pack_context));
 	packer->pixels = Wellspring_malloc(sizeof(uint8_t) * width * height);
@@ -224,6 +249,8 @@ Wellspring_Packer* Wellspring_CreatePacker(
 
 	packer->ranges = NULL;
 	packer->rangeCount = 0;
+
+	packer->scale = stbtt_ScaleForPixelHeight(&packer->font->fontInfo, fontSize);
 
 	stbtt_PackBegin(packer->context, packer->pixels, width, height, strideInBytes, padding, NULL);
 
@@ -244,7 +271,7 @@ uint32_t Wellspring_PackFontRanges(
 	for (i = 0; i < numRanges; i += 1)
 	{
 		currentFontRange = &ranges[i];
-		stbPackRanges[i].font_size = currentFontRange->fontSize;
+		stbPackRanges[i].font_size = myPacker->fontSize;
 		stbPackRanges[i].first_unicode_codepoint_in_range = currentFontRange->firstCodepoint;
 		stbPackRanges[i].array_of_unicode_codepoints = NULL;
 		stbPackRanges[i].num_chars = currentFontRange->numChars;
@@ -253,7 +280,7 @@ uint32_t Wellspring_PackFontRanges(
 		stbPackRanges[i].chardata_for_range = Wellspring_malloc(sizeof(stbtt_packedchar) * currentFontRange->numChars);
 	}
 
-	if (!stbtt_PackFontRanges(myPacker->context, myPacker->fontBytes, 0, stbPackRanges, numRanges))
+	if (!stbtt_PackFontRanges(myPacker->context, myPacker->font->fontBytes, 0, stbPackRanges, numRanges))
 	{
 		/* Font packing failed, time to bail */
 		for (i = 0; i < numRanges; i += 1)
@@ -312,31 +339,62 @@ void Wellspring_StartTextBatch(
 	batch->indexCount = 0;
 }
 
-uint8_t Wellspring_Draw(
-	Wellspring_TextBatch *textBatch,
+static float Wellspring_INTERNAL_GetVerticalAlignOffset(
+	Font *font,
+	Wellspring_VerticalAlignment verticalAlignment,
+	float scale
+) {
+	if (verticalAlignment == WELLSPRING_VERTICALALIGNMENT_TOP)
+	{
+		return scale * font->ascent;
+	}
+	else if (verticalAlignment == WELLSPRING_VERTICALALIGNMENT_MIDDLE)
+	{
+		return scale * (font->ascent + font->descent) / 2.0f;
+	}
+	else if (verticalAlignment == WELLSPRING_VERTICALALIGNMENT_BASELINE)
+	{
+		return 0;
+	}
+	else /* BOTTOM */
+	{
+		return scale * font->descent;
+	}
+}
+
+uint8_t Wellspring_TextBounds(
+	Wellspring_TextBatch* textBatch,
 	float x,
 	float y,
-	float depth,
-	Wellspring_Color *color,
-	const uint8_t *str,
-	uint32_t strLength
+	Wellspring_HorizontalAlignment horizontalAlignment,
+	Wellspring_VerticalAlignment verticalAlignment,
+	const uint8_t* strBytes,
+	uint32_t strLengthInBytes,
+	Wellspring_Rectangle *pRectangle
 ) {
-	Batch *batch = (Batch*) textBatch;
-	Packer *myPacker = batch->currentPacker;
+	Batch* batch = (Batch*)textBatch;
+	Packer* myPacker = batch->currentPacker;
 	uint32_t decodeState = 0;
 	uint32_t codepoint;
-	uint32_t previousCodepoint;
+	int32_t glyphIndex;
+	int32_t previousGlyphIndex;
 	int32_t rangeIndex;
-	stbtt_packedchar *rangeData;
+	stbtt_packedchar* rangeData;
 	float rangeFontSize;
 	stbtt_aligned_quad charQuad;
-	uint32_t vertexBufferIndex;
-	uint32_t indexBufferIndex;
 	uint32_t i, j;
+	float minX = x;
+	float minY = y;
+	float maxX = x;
+	float maxY = y;
+	float startX = x;
+	float advance = 0;
 
-	for (i = 0; i < strLength; i += 1)
+	y += Wellspring_INTERNAL_GetVerticalAlignOffset(myPacker->font, verticalAlignment, myPacker->scale);
+
+	for (i = 0; i < strLengthInBytes; i += 1)
 	{
-		if (decode(&decodeState, &codepoint, str[i]))
+		if (decode(&decodeState, &codepoint, strBytes[i]))
 		{
 			if (decodeState == UTF8_REJECT)
 			{
@@ -368,11 +426,144 @@ uint8_t Wellspring_Draw(
 			/* Requested char wasn't packed! */
 			return 0;
 		}
-		
+
+		glyphIndex = stbtt_FindGlyphIndex(&myPacker->font->fontInfo, codepoint);
+
 		if (i > 0)
 		{
-			float scale = stbtt_ScaleForPixelHeight(&myPacker->fontInfo, rangeFontSize);
-			x += scale * stbtt_GetCodepointKernAdvance(&myPacker->fontInfo, previousCodepoint, codepoint);
+			x += myPacker->scale * stbtt_GetGlyphKernAdvance(&myPacker->font->fontInfo, previousGlyphIndex, glyphIndex);
+		}
+
+		stbtt_GetPackedQuad(
+			rangeData,
+			myPacker->width,
+			myPacker->height,
+			rangeIndex,
+			&x,
+			&y,
+			&charQuad,
+			0
+		);
+
+		if (charQuad.x0 < minX) { minX = charQuad.x0; }
+		if (charQuad.x1 > maxX) { maxX = charQuad.x1; }
+		if (charQuad.y0 < minY) { minY = charQuad.y0; }
+		if (charQuad.y1 > maxY) { maxY = charQuad.y1; }
+
+		previousGlyphIndex = glyphIndex;
+	}
+
+	advance = x - startX;
+
+	if (horizontalAlignment == WELLSPRING_HORIZONTALALIGNMENT_RIGHT)
+	{
+		minX -= advance;
+		maxX -= advance;
+	}
+	else if (horizontalAlignment == WELLSPRING_HORIZONTALALIGNMENT_CENTER)
+	{
+		minX -= advance * 0.5f;
+		maxX -= advance * 0.5f;
+	}
+
+	pRectangle->x = minX;
+	pRectangle->y = minY;
+	pRectangle->w = maxX - minX;
+	pRectangle->h = maxY - minY;
+
+	return 1;
+}
+
+uint8_t Wellspring_Draw(
+	Wellspring_TextBatch *textBatch,
+	float x,
+	float y,
+	float depth,
+	Wellspring_Color *color,
+	Wellspring_HorizontalAlignment horizontalAlignment,
+	Wellspring_VerticalAlignment verticalAlignment,
+	const uint8_t *strBytes,
+	uint32_t strLengthInBytes
+) {
+	Batch *batch = (Batch*) textBatch;
+	Packer *myPacker = batch->currentPacker;
+	uint32_t decodeState = 0;
+	uint32_t codepoint;
+	int32_t glyphIndex;
+	int32_t previousGlyphIndex;
+	int32_t rangeIndex;
+	stbtt_packedchar *rangeData;
+	float rangeFontSize;
+	stbtt_aligned_quad charQuad;
+	uint32_t vertexBufferIndex;
+	uint32_t indexBufferIndex;
+	Wellspring_Rectangle bounds;
+	uint32_t i, j;
+
+	y += Wellspring_INTERNAL_GetVerticalAlignOffset(myPacker->font, verticalAlignment, myPacker->scale);
+
+	/* FIXME: If we horizontally align, we have to decode and process glyphs twice, very inefficient. */
+	if (horizontalAlignment == WELLSPRING_HORIZONTALALIGNMENT_RIGHT)
+	{
+		if (!Wellspring_TextBounds(textBatch, x, y, horizontalAlignment, verticalAlignment, strBytes, strLengthInBytes, &bounds))
+		{
+			/* Something went wrong while calculating bounds. */
+			return 0;
+		}
+
+		x -= bounds.w;
+	}
+	else if (horizontalAlignment == WELLSPRING_HORIZONTALALIGNMENT_CENTER)
+	{
+		if (!Wellspring_TextBounds(textBatch, x, y, horizontalAlignment, verticalAlignment, strBytes, strLengthInBytes, &bounds))
+		{
+			/* Something went wrong while calculating bounds. */
+			return 0;
+		}
+
+		x -= bounds.w * 0.5f;
+	}
+
+	for (i = 0; i < strLengthInBytes; i += 1)
+	{
+		if (decode(&decodeState, &codepoint, strBytes[i]))
+		{
+			if (decodeState == UTF8_REJECT)
+			{
+				/* Something went wrong while decoding UTF-8. */
+				return 0;
+			}
+
+			continue;
+		}
+
+		rangeData = NULL;
+
+		/* Find the packed char data */
+		for (j = 0; j < myPacker->rangeCount; j += 1)
+		{
+			if (
+				codepoint >= myPacker->ranges[j].firstCodepoint &&
+				codepoint < myPacker->ranges[j].firstCodepoint + myPacker->ranges[j].charCount
+			) {
+				rangeData = myPacker->ranges[j].data;
+				rangeIndex = codepoint - myPacker->ranges[j].firstCodepoint;
+				rangeFontSize = myPacker->ranges[j].fontSize;
+				break;
+			}
+		}
+
+		if (rangeData == NULL)
+		{
+			/* Requested char wasn't packed! */
+			return 0;
+		}
+		
+		glyphIndex = stbtt_FindGlyphIndex(&myPacker->font->fontInfo, codepoint);
+
+		if (i > 0)
+		{
+			x += myPacker->scale * stbtt_GetGlyphKernAdvance(&myPacker->font->fontInfo, previousGlyphIndex, glyphIndex);
 		}
 
 		stbtt_GetPackedQuad(
@@ -453,7 +644,7 @@ uint8_t Wellspring_Draw(
 		batch->vertexCount += 4;
 		batch->indexCount += 6;
 
-		previousCodepoint = codepoint;
+		previousGlyphIndex = glyphIndex;
 	}
 
 	return 1;
@@ -494,7 +685,14 @@ void Wellspring_DestroyPacker(Wellspring_Packer *packer)
 	}
 
 	Wellspring_free(myPacker->ranges);
-	Wellspring_free(myPacker->fontBytes);
 	Wellspring_free(myPacker->context);
 	Wellspring_free(myPacker->pixels);
+}
+
+void Wellspring_DestroyFont(Wellspring_Font* font)
+{
+	Font *myFont = (Font*) font;
+
+	Wellspring_free(myFont->fontBytes);
+	Wellspring_free(myFont);
 }
