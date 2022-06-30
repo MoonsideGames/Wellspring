@@ -384,8 +384,8 @@ static inline uint32_t IsWhitespace(uint32_t codepoint)
 	}
 }
 
-uint8_t Wellspring_TextBounds(
-	Wellspring_TextBatch* textBatch,
+static uint8_t Wellspring_Internal_TextBounds(
+	Packer* packer,
 	float x,
 	float y,
 	Wellspring_HorizontalAlignment horizontalAlignment,
@@ -394,8 +394,6 @@ uint8_t Wellspring_TextBounds(
 	uint32_t strLengthInBytes,
 	Wellspring_Rectangle *pRectangle
 ) {
-	Batch* batch = (Batch*)textBatch;
-	Packer* myPacker = batch->currentPacker;
 	uint32_t decodeState = 0;
 	uint32_t codepoint;
 	int32_t glyphIndex;
@@ -412,7 +410,7 @@ uint8_t Wellspring_TextBounds(
 	float startX = x;
 	float advance = 0;
 
-	y += Wellspring_INTERNAL_GetVerticalAlignOffset(myPacker->font, verticalAlignment, myPacker->scale);
+	y += Wellspring_INTERNAL_GetVerticalAlignOffset(packer->font, verticalAlignment, packer->scale);
 
 	for (i = 0; i < strLengthInBytes; i += 1)
 	{
@@ -430,24 +428,24 @@ uint8_t Wellspring_TextBounds(
 		if (IsWhitespace(codepoint))
 		{
 			int32_t ws_adv, ws_bearing;
-			stbtt_GetCodepointHMetrics(&myPacker->font->fontInfo, codepoint, &ws_adv, &ws_bearing);
-			x += myPacker->scale * ws_adv;
-			maxX += myPacker->scale * ws_adv;
+			stbtt_GetCodepointHMetrics(&packer->font->fontInfo, codepoint, &ws_adv, &ws_bearing);
+			x += packer->scale * ws_adv;
+			maxX += packer->scale * ws_adv;
 			continue;
 		}
 
 		rangeData = NULL;
 
 		/* Find the packed char data */
-		for (j = 0; j < myPacker->rangeCount; j += 1)
+		for (j = 0; j < packer->rangeCount; j += 1)
 		{
 			if (
-				codepoint >= myPacker->ranges[j].firstCodepoint &&
-				codepoint < myPacker->ranges[j].firstCodepoint + myPacker->ranges[j].charCount
+				codepoint >= packer->ranges[j].firstCodepoint &&
+				codepoint < packer->ranges[j].firstCodepoint + packer->ranges[j].charCount
 			) {
-				rangeData = myPacker->ranges[j].data;
-				rangeIndex = codepoint - myPacker->ranges[j].firstCodepoint;
-				rangeFontSize = myPacker->ranges[j].fontSize;
+				rangeData = packer->ranges[j].data;
+				rangeIndex = codepoint - packer->ranges[j].firstCodepoint;
+				rangeFontSize = packer->ranges[j].fontSize;
 				break;
 			}
 		}
@@ -458,17 +456,17 @@ uint8_t Wellspring_TextBounds(
 			return 0;
 		}
 
-		glyphIndex = stbtt_FindGlyphIndex(&myPacker->font->fontInfo, codepoint);
+		glyphIndex = stbtt_FindGlyphIndex(&packer->font->fontInfo, codepoint);
 
 		if (i > 0)
 		{
-			x += myPacker->scale * stbtt_GetGlyphKernAdvance(&myPacker->font->fontInfo, previousGlyphIndex, glyphIndex);
+			x += packer->scale * stbtt_GetGlyphKernAdvance(&packer->font->fontInfo, previousGlyphIndex, glyphIndex);
 		}
 
 		stbtt_GetPackedQuad(
 			rangeData,
-			myPacker->width,
-			myPacker->height,
+			packer->width,
+			packer->height,
 			rangeIndex,
 			&x,
 			&y,
@@ -505,6 +503,28 @@ uint8_t Wellspring_TextBounds(
 	return 1;
 }
 
+uint8_t Wellspring_TextBounds(
+	Wellspring_Packer* packer,
+	float x,
+	float y,
+	Wellspring_HorizontalAlignment horizontalAlignment,
+	Wellspring_VerticalAlignment verticalAlignment,
+	const uint8_t* strBytes,
+	uint32_t strLengthInBytes,
+	Wellspring_Rectangle* pRectangle
+) {
+	return Wellspring_Internal_TextBounds(
+		(Packer*) packer,
+		x,
+		y,
+		horizontalAlignment,
+		verticalAlignment,
+		strBytes,
+		strLengthInBytes,
+		pRectangle
+	);
+}
+
 uint8_t Wellspring_Draw(
 	Wellspring_TextBatch *textBatch,
 	float x,
@@ -536,7 +556,7 @@ uint8_t Wellspring_Draw(
 	/* FIXME: If we horizontally align, we have to decode and process glyphs twice, very inefficient. */
 	if (horizontalAlignment == WELLSPRING_HORIZONTALALIGNMENT_RIGHT)
 	{
-		if (!Wellspring_TextBounds(textBatch, x, y, horizontalAlignment, verticalAlignment, strBytes, strLengthInBytes, &bounds))
+		if (!Wellspring_Internal_TextBounds(myPacker, x, y, horizontalAlignment, verticalAlignment, strBytes, strLengthInBytes, &bounds))
 		{
 			/* Something went wrong while calculating bounds. */
 			return 0;
@@ -546,7 +566,7 @@ uint8_t Wellspring_Draw(
 	}
 	else if (horizontalAlignment == WELLSPRING_HORIZONTALALIGNMENT_CENTER)
 	{
-		if (!Wellspring_TextBounds(textBatch, x, y, horizontalAlignment, verticalAlignment, strBytes, strLengthInBytes, &bounds))
+		if (!Wellspring_Internal_TextBounds(myPacker, x, y, horizontalAlignment, verticalAlignment, strBytes, strLengthInBytes, &bounds))
 		{
 			/* Something went wrong while calculating bounds. */
 			return 0;

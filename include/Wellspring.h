@@ -150,7 +150,7 @@ WELLSPRINGAPI void Wellspring_StartTextBatch(
 );
 
 WELLSPRINGAPI uint8_t Wellspring_TextBounds(
-	Wellspring_TextBatch *textBatch,
+	Wellspring_Packer* packer,
 	float x,
 	float y,
 	Wellspring_HorizontalAlignment horizontalAlignment,
