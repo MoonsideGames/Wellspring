@@ -174,6 +174,7 @@ WELLSPRINGAPI uint8_t Wellspring_Draw(
 
 WELLSPRINGAPI void Wellspring_GetBufferData(
 	Wellspring_TextBatch *textBatch,
+	uint32_t* pVertexCount,
 	Wellspring_Vertex **pVertexBuffer,
 	uint32_t *pVertexBufferLengthInBytes,
 	uint32_t **pIndexBuffer,

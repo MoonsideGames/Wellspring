@@ -362,6 +362,28 @@ static float Wellspring_INTERNAL_GetVerticalAlignOffset(
 	}
 }
 
+static inline uint32_t IsWhitespace(uint32_t codepoint)
+{
+	switch (codepoint)
+	{
+		case 0x0020:
+		case 0x00A0:
+		case 0x1680:
+		case 0x202F:
+		case 0x205F:
+		case 0x3000:
+			return 1;
+
+		default:
+			if (codepoint > 0x2000 && codepoint <= 0x200A)
+			{
+				return 1;
+			}
+
+			return 0;
+	}
+}
+
 uint8_t Wellspring_TextBounds(
 	Wellspring_TextBatch* textBatch,
 	float x,
@@ -402,6 +424,15 @@ uint8_t Wellspring_TextBounds(
 				return 0;
 			}
 
+			continue;
+		}
+
+		if (IsWhitespace(codepoint))
+		{
+			int32_t ws_adv, ws_bearing;
+			stbtt_GetCodepointHMetrics(&myPacker->font->fontInfo, codepoint, &ws_adv, &ws_bearing);
+			x += myPacker->scale * ws_adv;
+			maxX += myPacker->scale * ws_adv;
 			continue;
 		}
 
@@ -537,6 +568,14 @@ uint8_t Wellspring_Draw(
 			continue;
 		}
 
+		if (IsWhitespace(codepoint))
+		{
+			int32_t ws_adv, ws_bearing;
+			stbtt_GetCodepointHMetrics(&myPacker->font->fontInfo, codepoint, &ws_adv, &ws_bearing);
+			x += myPacker->scale * ws_adv;
+			continue;
+		}
+
 		rangeData = NULL;
 
 		/* Find the packed char data */
@@ -558,7 +597,7 @@ uint8_t Wellspring_Draw(
 			/* Requested char wasn't packed! */
 			return 0;
 		}
-		
+
 		glyphIndex = stbtt_FindGlyphIndex(&myPacker->font->fontInfo, codepoint);
 
 		if (i > 0)
@@ -652,12 +691,14 @@ uint8_t Wellspring_Draw(
 
 void Wellspring_GetBufferData(
 	Wellspring_TextBatch *textBatch,
+	uint32_t *pVertexCount,
 	Wellspring_Vertex **pVertexBuffer,
 	uint32_t *pVertexBufferLengthInBytes,
 	uint32_t **pIndexBuffer,
 	uint32_t *pIndexBufferLengthInBytes
 ) {
 	Batch *batch = (Batch*) textBatch;
+	*pVertexCount = batch->vertexCount;
 	*pVertexBuffer = batch->vertices;
 	*pVertexBufferLengthInBytes = batch->vertexCount * sizeof(Wellspring_Vertex);
 	*pIndexBuffer = batch->indices;
