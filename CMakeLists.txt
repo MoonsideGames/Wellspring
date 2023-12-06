@@ -25,7 +25,7 @@ endif()
 # Platform Flags
 if(APPLE)
 	set(CMAKE_MACOSX_RPATH ON)
-	set(CMAKE_OSX_DEPLOYMENT_TARGET 10.15)
+	set(CMAKE_OSX_DEPLOYMENT_TARGET 10.9)
 	set(LOBJC "objc")
 elseif(WIN32)
 	# "Wellspring.dll", not "libWellspring.dll"
