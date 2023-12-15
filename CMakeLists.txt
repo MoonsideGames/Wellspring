@@ -46,6 +46,7 @@ add_library(Wellspring
 	#Public header
 	include/Wellspring.h
 	#Source
+	lib/json.h
 	lib/stb_rect_pack.h
 	lib/stb_truetype.h
 	src/Wellspring.c

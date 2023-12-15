@@ -63,7 +63,6 @@ WELLSPRINGAPI uint32_t Wellspring_LinkedVersion(void);
 /* Type definitions */
 
 typedef struct Wellspring_Font Wellspring_Font;
-typedef struct Wellspring_Packer Wellspring_Packer;
 typedef struct Wellspring_TextBatch Wellspring_TextBatch;
 
 typedef struct Wellspring_FontRange
@@ -113,46 +112,25 @@ typedef enum Wellspring_VerticalAlignment
 
 WELLSPRINGAPI Wellspring_Font* Wellspring_CreateFont(
 	const uint8_t *fontBytes,
-	uint32_t fontBytesLength
-);
-
-WELLSPRINGAPI Wellspring_Packer* Wellspring_CreatePacker(
-	Wellspring_Font *font,
-	float fontSize,
-	uint32_t width,
-	uint32_t height,
-	uint32_t strideInBytes, /* 0 means the buffer is tightly packed. */
-	uint32_t padding /* A sensible value here is 1 to allow bilinear filtering. */
-);
-
-WELLSPRINGAPI uint32_t Wellspring_PackFontRanges(
-	Wellspring_Packer *packer,
-	Wellspring_FontRange *ranges,
-	uint32_t numRanges
-);
-
-/* Returns a pointer to an array of rasterized pixels of the packed font.
- * This data must be uploaded to a texture before you render!
- * The pixel data becomes outdated if you call PackFontRanges.
- * Length is width * height.
- */
-WELLSPRINGAPI uint8_t* Wellspring_GetPixelDataPointer(
-	Wellspring_Packer *packer
+	uint32_t fontBytesLength,
+	const uint8_t *atlasJsonBytes,
+	uint32_t atlasJsonBytesLength,
+	float *pPixelsPerEm,
+	float *pDistanceRange
 );
 
 /* Batches are not thread-safe, recommend one batch per thread. */
-WELLSPRINGAPI Wellspring_TextBatch* Wellspring_CreateTextBatch();
+WELLSPRINGAPI Wellspring_TextBatch* Wellspring_CreateTextBatch(void);
 
 /* Also restarts the batch */
 WELLSPRINGAPI void Wellspring_StartTextBatch(
 	Wellspring_TextBatch *textBatch,
-	Wellspring_Packer *packer
+	Wellspring_Font *font
 );
 
 WELLSPRINGAPI uint8_t Wellspring_TextBounds(
-	Wellspring_Packer* packer,
-	float x,
-	float y,
+	Wellspring_Font *font,
+	int pixelSize,
 	Wellspring_HorizontalAlignment horizontalAlignment,
 	Wellspring_VerticalAlignment verticalAlignment,
 	const uint8_t *strBytes,
@@ -160,11 +138,9 @@ WELLSPRINGAPI uint8_t Wellspring_TextBounds(
 	Wellspring_Rectangle *pRectangle
 );
 
-WELLSPRINGAPI uint8_t Wellspring_Draw(
+WELLSPRINGAPI uint8_t Wellspring_AddToTextBatch(
 	Wellspring_TextBatch *textBatch,
-	float x,
-	float y,
-	float depth,
+	int pixelSize,
 	Wellspring_Color *color,
 	Wellspring_HorizontalAlignment horizontalAlignment,
 	Wellspring_VerticalAlignment verticalAlignment,
@@ -182,7 +158,6 @@ WELLSPRINGAPI void Wellspring_GetBufferData(
 );
 
 WELLSPRINGAPI void Wellspring_DestroyTextBatch(Wellspring_TextBatch *textBatch);
-WELLSPRINGAPI void Wellspring_DestroyPacker(Wellspring_Packer *packer);
 WELLSPRINGAPI void Wellspring_DestroyFont(Wellspring_Font *font);
 
 #ifdef __cplusplus
