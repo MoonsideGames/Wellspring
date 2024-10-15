@@ -1,6 +1,6 @@
 /* Wellspring - An immediate mode font rendering system in C
  *
- * Copyright (c) 2022 Evan Hemsley
+ * Copyright (c) 2022-2024 Evan Hemsley
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -35,11 +35,9 @@
 #define WELLSPRINGCALL
 #endif
 
-#include <stdint.h>
-
-#ifdef USE_SDL2
-#include <SDL.h>
-#endif
+#include <SDL3/SDL_stdinc.h>
+#include <SDL3/SDL_assert.h>
+#include <SDL3/SDL_log.h>
 
 #ifdef __cplusplus
 extern "C"

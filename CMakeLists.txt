@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.5)
 project(Wellspring C)
+find_package(SDL3 REQUIRED)
 
 option(BUILD_SHARED_LIBS "Build shared library" ON)
-option(USE_SDL2 "Use SDL2" ON)
 
 SET(LIB_MAJOR_VERSION "1")
 SET(LIB_MINOR_VERSION "0")
@@ -38,10 +38,6 @@ if(UNIX)
 	set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
 endif()
 
-if(USE_SDL2)
-	add_definitions(-DUSE_SDL2)
-endif()
-
 add_library(Wellspring
 	#Public header
 	include/Wellspring.h
@@ -70,25 +66,8 @@ set_target_properties(Wellspring PROPERTIES OUTPUT_NAME "Wellspring"
 	SOVERSION ${LIB_MAJOR_VERSION}
 )
 
-# SDL2 Dependency
-if(USE_SDL2)
-	if (DEFINED SDL2_INCLUDE_DIRS AND DEFINED SDL2_LIBRARIES)
-		message(STATUS "using pre-defined SDL2 variables SDL2_INCLUDE_DIRS and SDL2_LIBRARIES")
-		target_include_directories(Wellspring PUBLIC "$<BUILD_INTERFACE:${SDL2_INCLUDE_DIRS}>")
-		target_link_libraries(Wellspring PUBLIC ${SDL2_LIBRARIES})
-	else()
-		# Only try to autodetect if both SDL2 variables aren't explicitly set
-		find_package(SDL2 CONFIG)
-		if (TARGET SDL2::SDL2)
-			message(STATUS "using TARGET SDL2::SDL2")
-			target_link_libraries(Wellspring PUBLIC SDL2::SDL2)
-		elseif (TARGET SDL2)
-			message(STATUS "using TARGET SDL2")
-			target_link_libraries(Wellspring PUBLIC SDL2)
-		else()
-			message(STATUS "no TARGET SDL2::SDL2, or SDL2, using variables")
-			target_include_directories(Wellspring PUBLIC "$<BUILD_INTERFACE:${SDL2_INCLUDE_DIRS}>")
-			target_link_libraries(Wellspring PUBLIC ${SDL2_LIBRARIES})
-		endif()
-	endif()
-endif()
+# SDL3 Dependency
+target_link_libraries(Wellspring
+	SDL3::SDL3
+	SDL3::Headers
+)

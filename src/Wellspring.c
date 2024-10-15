@@ -1,6 +1,6 @@
 /* Wellspring - An immediate mode font rendering system in C
  *
- * Copyright (c) 2022 Evan Hemsley
+ * Copyright (c) 2022-2024 Evan Hemsley
  *
  * This software is provided 'as-is', without any express or implied warranty.
  * In no event will the authors be held liable for any damages arising from
@@ -28,8 +28,6 @@
 
  /* Function defines */
 
-#ifdef USE_SDL2
-
 #define Wellspring_malloc SDL_malloc
 #define Wellspring_realloc SDL_realloc
 #define Wellspring_free SDL_free
@@ -46,36 +44,6 @@
 #define Wellspring_assert SDL_assert
 #define Wellspring_strlen SDL_strlen
 #define Wellspring_sort SDL_qsort
-
-#else
-
-#ifdef _MSC_VER
-
-#include <assert.h>
-#include <stdlib.h>
-#include <search.h>
-#include <math.h>
-#include <string.h>
-#endif
-
-#define Wellspring_malloc malloc
-#define Wellspring_realloc realloc
-#define Wellspring_free free
-#define Wellspring_memcpy memcpy
-#define Wellspring_memset memset
-#define Wellspring_ifloor(x) ((int) floor(x))
-#define Wellspring_iceil(x) ((int) ceil(x))
-#define Wellspring_sqrt sqrt
-#define Wellspring_pow pow
-#define Wellspring_fmod fmod
-#define Wellspring_cos cos
-#define Wellspring_acos acos
-#define Wellspring_fabs fabs
-#define Wellspring_assert assert
-#define Wellspring_strlen strlen
-#define Wellspring_sort qsort
-
-#endif
 
 #define STBTT_malloc(x,u) ((void)(u),Wellspring_malloc(x))
 #define STBTT_free(x,u) ((void)(u),Wellspring_free(x))
