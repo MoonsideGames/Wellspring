@@ -47,6 +47,13 @@ jobs:
         name: Wellspring-lib64
         path: release/libWellspring.so.1
 
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: release/libWellspring.so.1
+
+
   macos-SDL3:
     name: macOS (CMake) SDL3
     runs-on: macos-latest
@@ -87,6 +94,12 @@ jobs:
         name: Wellspring-osx
         path: release/libWellspring.1.dylib
 
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: release/libWellspring.1.dylib
+
   linux-mingw:
     name: Linux MinGW
     runs-on: ubuntu-latest
@@ -106,13 +119,19 @@ jobs:
           sudo apt-get install ninja-build mingw-w64
 
       - name: CMake configure 64-bit (Release)
-        run: cmake -B release-x64 -G Ninja . -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=.github/mingw-w64-x86_64.cmake -DSDL3_DIR=${GITHUB_WORKSPACE}/SDL3-$SDL3_VERSION/cmake
+        run: cmake -B release -G Ninja . -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=.github/mingw-w64-x86_64.cmake -DSDL3_DIR=${GITHUB_WORKSPACE}/SDL3-$SDL3_VERSION/cmake
 
       - name: Build 64-bit (Release)
-        run: ninja -C release-x64
+        run: ninja -C release
 
       - name: Archive build result 64-bit
         uses: actions/upload-artifact@v4
         with:
           name: Wellspring-x64
-          path: release-x64/Wellspring.dll
+          path: release/Wellspring.dll
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: release/Wellspring.dll
