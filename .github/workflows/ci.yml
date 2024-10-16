@@ -1,0 +1,118 @@
+name: CI
+
+on: [push, pull_request]
+
+env:
+  SDL3_VERSION: 3.1.3
+
+jobs:
+  linux:
+    name: Linux
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
+
+    # This can be replaced by installing libsdl once Ubuntu ships SDL3
+    - name: Clone SDL3
+      run: git clone --depth 1 --branch preview-$SDL3_VERSION https://github.com/libsdl-org/SDL.git
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get install ninja-build
+
+    - name: Build SDL3 (Release)
+      run: |
+        cd SDL
+        cmake -B release -G Ninja . -DCMAKE_BUILD_TYPE=Release
+        ninja -C release
+        cd ..
+
+    - name: CMake configure (Debug)
+      run: cmake -B debug -G Ninja . -DCMAKE_BUILD_TYPE=Debug -DBUILD_SDL3=ON -DSDL3_INCLUDE_DIRS=${GITHUB_WORKSPACE}/SDL/include -DSDL3_LIBRARIES=${GITHUB_WORKSPACE}/SDL/release/libSDL3.so
+
+    - name: Build (Debug)
+      run: ninja -C debug
+
+    - name: CMake configure (Release)
+      run: cmake -B release -G Ninja . -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL3=ON -DSDL3_INCLUDE_DIRS=${GITHUB_WORKSPACE}/SDL/include -DSDL3_LIBRARIES=${GITHUB_WORKSPACE}/SDL/release/libSDL3.so
+
+    - name: Build (Release)
+      run: ninja -C release
+
+    - name: Archive build result
+      uses: actions/upload-artifact@v4
+      with:
+        name: FAudio-SDL3-lib64
+        path: release/libWellspring.so.0
+
+  macos-SDL3:
+    name: macOS (CMake) SDL3
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
+
+    # This can be replaced by installing libsdl once Ubuntu ships SDL3
+    - name: Clone SDL3
+      run: git clone --depth 1 --branch preview-$SDL3_VERSION https://github.com/libsdl-org/SDL.git
+
+    - name: Install dependencies
+      run: brew install ninja
+
+    - name: Build SDL3 (Release)
+      run: |
+        cd SDL
+        cmake -B release -G Ninja . -DCMAKE_BUILD_TYPE=Release
+        ninja -C release
+        cd ..
+
+    - name: CMake configure (Debug)
+      run: cmake -B debug -G Ninja . -DCMAKE_BUILD_TYPE=Debug -DBUILD_SDL3=ON -DSDL3_INCLUDE_DIRS=${GITHUB_WORKSPACE}/SDL/include -DSDL3_LIBRARIES=${GITHUB_WORKSPACE}/SDL/release/libSDL3.dylib
+
+    - name: Build (Debug)
+      run: ninja -C debug
+
+    - name: CMake configure (Release)
+      run: cmake -B release -G Ninja . -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL3=ON -DSDL3_INCLUDE_DIRS=${GITHUB_WORKSPACE}/SDL/include -DSDL3_LIBRARIES=${GITHUB_WORKSPACE}/SDL/release/libSDL3.dylib
+
+    - name: Build (Release)
+      run: ninja -C release
+
+    - name: Archive build result
+      uses: actions/upload-artifact@v4
+      with:
+        name: FAudio-SDL3-osx
+        path: release/libWellspring.0.dylib
+
+  linux-mingw:
+    name: Linux MinGW
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Download SDL
+        run: |
+          curl -LO https://github.com/libsdl-org/SDL/releases/download/preview-$SDL3_VERSION/SDL3-devel-$SDL3_VERSION-mingw.tar.xz
+          tar -xvf SDL3-devel-$SDL3_VERSION-mingw.tar.xz -C ${GITHUB_WORKSPACE}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install ninja-build mingw-w64
+
+      - name: CMake configure 64-bit (Release)
+        run: cmake -B release-x64 -G Ninja . -DBUILD_SDL3=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=.github/mingw-w64-x86_64.cmake -DSDL3_LIBRARIES=${GITHUB_WORKSPACE}/SDL3-$SDL3_VERSION/x86_64-w64-mingw32/bin/SDL3.dll -DSDL3_INCLUDE_DIRS=${GITHUB_WORKSPACE}/SDL3-$SDL3_VERSION/x86_64-w64-mingw32/include
+
+      - name: Build 64-bit (Release)
+        run: ninja -C release-x64
+
+      - name: Archive build result 64-bit
+        uses: actions/upload-artifact@v4
+        with:
+          name: FAudio-SDL3-x64
+          path: release-x64/Wellspring.dll
