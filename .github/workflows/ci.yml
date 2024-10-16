@@ -30,13 +30,13 @@ jobs:
         cd ..
 
     - name: CMake configure (Debug)
-      run: cmake -B debug -G Ninja . -DCMAKE_BUILD_TYPE=Debug -DBUILD_SDL3=ON -DSDL3_INCLUDE_DIRS=${GITHUB_WORKSPACE}/SDL/include -DSDL3_LIBRARIES=${GITHUB_WORKSPACE}/SDL/release/libSDL3.so
+      run: cmake -B debug -G Ninja . -DCMAKE_BUILD_TYPE=Debug -DSDL3_DIRS=${GITHUB_WORKSPACE}/SDL/release
 
     - name: Build (Debug)
       run: ninja -C debug
 
     - name: CMake configure (Release)
-      run: cmake -B release -G Ninja . -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL3=ON -DSDL3_INCLUDE_DIRS=${GITHUB_WORKSPACE}/SDL/include -DSDL3_LIBRARIES=${GITHUB_WORKSPACE}/SDL/release/libSDL3.so
+      run: cmake -B release -G Ninja . -DCMAKE_BUILD_TYPE=Release -DSDL3_DIRS=${GITHUB_WORKSPACE}/SDL/release
 
     - name: Build (Release)
       run: ninja -C release
@@ -70,13 +70,13 @@ jobs:
         cd ..
 
     - name: CMake configure (Debug)
-      run: cmake -B debug -G Ninja . -DCMAKE_BUILD_TYPE=Debug -DBUILD_SDL3=ON -DSDL3_INCLUDE_DIRS=${GITHUB_WORKSPACE}/SDL/include -DSDL3_LIBRARIES=${GITHUB_WORKSPACE}/SDL/release/libSDL3.dylib
+      run: cmake -B debug -G Ninja . -DCMAKE_BUILD_TYPE=Debug -DSDL3_DIRS=${GITHUB_WORKSPACE}/SDL/release
 
     - name: Build (Debug)
       run: ninja -C debug
 
     - name: CMake configure (Release)
-      run: cmake -B release -G Ninja . -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL3=ON -DSDL3_INCLUDE_DIRS=${GITHUB_WORKSPACE}/SDL/include -DSDL3_LIBRARIES=${GITHUB_WORKSPACE}/SDL/release/libSDL3.dylib
+      run: cmake -B release -G Ninja . -DCMAKE_BUILD_TYPE=Release -DSDL3_DIRS=${GITHUB_WORKSPACE}/SDL/release
 
     - name: Build (Release)
       run: ninja -C release
@@ -106,7 +106,7 @@ jobs:
           sudo apt-get install ninja-build mingw-w64
 
       - name: CMake configure 64-bit (Release)
-        run: cmake -B release-x64 -G Ninja . -DBUILD_SDL3=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=.github/mingw-w64-x86_64.cmake -DSDL3_DIR=${GITHUB_WORKSPACE}/SDL3-$SDL3_VERSION/cmake
+        run: cmake -B release-x64 -G Ninja . -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=.github/mingw-w64-x86_64.cmake -DSDL3_DIR=${GITHUB_WORKSPACE}/SDL3-$SDL3_VERSION/cmake
 
       - name: Build 64-bit (Release)
         run: ninja -C release-x64
