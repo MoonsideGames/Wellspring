@@ -45,7 +45,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Wellspring-lib64
-        path: release/libWellspring.so.0
+        path: release/libWellspring.so.1
 
   macos-SDL3:
     name: macOS (CMake) SDL3
@@ -85,7 +85,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: Wellspring-osx
-        path: release/libWellspring.0.dylib
+        path: release/libWellspring.1.dylib
 
   linux-mingw:
     name: Linux MinGW
