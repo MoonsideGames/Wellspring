@@ -44,7 +44,7 @@ jobs:
     - name: Archive build result
       uses: actions/upload-artifact@v4
       with:
-        name: FAudio-SDL3-lib64
+        name: Wellspring-lib64
         path: release/libWellspring.so.0
 
   macos-SDL3:
@@ -84,7 +84,7 @@ jobs:
     - name: Archive build result
       uses: actions/upload-artifact@v4
       with:
-        name: FAudio-SDL3-osx
+        name: Wellspring-osx
         path: release/libWellspring.0.dylib
 
   linux-mingw:
@@ -114,5 +114,5 @@ jobs:
       - name: Archive build result 64-bit
         uses: actions/upload-artifact@v4
         with:
-          name: FAudio-SDL3-x64
+          name: Wellspring-x64
           path: release-x64/Wellspring.dll
