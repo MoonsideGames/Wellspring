@@ -33,7 +33,7 @@
 #ifndef SHEREDOM_JSON_H_INCLUDED
 #define SHEREDOM_JSON_H_INCLUDED
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(push)
 
 /* disable warning: no function prototype given: converting '()' to '(void)' */
@@ -50,10 +50,10 @@
 #include <stddef.h>
 #include <string.h>
 
-#if defined(_MSC_VER) || defined(__WATCOMC__)
-#define json_weak __inline
-#elif defined(__clang__) || defined(__GNUC__)
+#if defined(__clang__) || defined(__GNUC__)
 #define json_weak __attribute__((weak))
+#elif defined(_MSC_VER) || defined(__WATCOMC__)
+#define json_weak __inline
 #else
 #error Non clang, non gcc, non MSVC, non WATCOM compiler found!
 #endif
@@ -399,18 +399,18 @@ typedef struct json_parse_result_s {
 #define SHEREDOM_JSON_H_free(x)   (free(x))
 #endif
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(pop)
 #endif
 
-#if defined(_MSC_VER) && (_MSC_VER < 1920)
+#if defined(_MSC_VER) && (_MSC_VER < 1920) && !defined(__clang__)
 #define json_uintmax_t unsigned __int64
 #else
 #include <inttypes.h>
 #define json_uintmax_t uintmax_t
 #endif
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(__clang__)
 #define json_strtoumax _strtoui64
 #else
 #define json_strtoumax strtoumax
