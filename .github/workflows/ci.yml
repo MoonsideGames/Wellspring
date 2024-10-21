@@ -107,8 +107,8 @@ jobs:
         with:
           files: release/Wellspring.dll
 
-  macos-SDL3:
-    name: macOS (CMake) SDL3
+  macos:
+    name: macOS (CMake)
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v4
@@ -122,21 +122,21 @@ jobs:
     - name: Install dependencies
       run: brew install ninja
 
-    - name: Build SDL3 (Release)
+    - name: Build SDL3 (Debug)
       run: |
         cd SDL
-        cmake -B release -G Ninja . -DCMAKE_BUILD_TYPE=Release
-        ninja -C release
+        cmake -B debug -G Ninja . -DCMAKE_BUILD_TYPE=Debug -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+        ninja -C debug
         cd ..
 
     - name: CMake configure (Debug)
-      run: cmake -B debug -G Ninja . -DCMAKE_BUILD_TYPE=Debug -DSDL3_DIR=${GITHUB_WORKSPACE}/SDL/release
+      run: cmake -B debug -G Ninja . -DCMAKE_BUILD_TYPE=Debug -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DSDL3_DIR=${GITHUB_WORKSPACE}/SDL/debug
 
     - name: Build (Debug)
       run: ninja -C debug
 
     - name: CMake configure (Release)
-      run: cmake -B release -G Ninja . -DCMAKE_BUILD_TYPE=Release -DSDL3_DIR=${GITHUB_WORKSPACE}/SDL/release
+      run: cmake -B release -G Ninja . -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DSDL3_DIR=${GITHUB_WORKSPACE}/SDL/debug
 
     - name: Build (Release)
       run: ninja -C release
