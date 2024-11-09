@@ -64,48 +64,61 @@ jobs:
       with:
         files: release/libWellspring.so.1
 
-  linux-mingw:
-    name: Rocky Linux MinGW
-    runs-on: ubuntu-latest
-    container:
-      image: rockylinux/rockylinux:9
+  windows-msvc-SDL3:
+    name: Windows (MSVC) SDL3
+    runs-on: windows-latest
     steps:
-      - name: Are we really on Rocky Linux?
-        run: cat /etc/os-release
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
 
-      - name: Install dependencies
-        run: |
-          dnf update -y
-          dnf install -y epel-release
-          crb enable
-          dnf install -y git cmake ninja-build mingw32-gcc mingw64-gcc xz
+    - name: Cache SDL
+      uses: actions/cache@v4
+      env:
+        cache-name: cache-sdl
+      with:
+        path: C:\SDL3-${{ env.SDL3_VERSION }}
+        key: ${{ runner.os }}-build-${{ env.cache-name }}
 
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
+    - name: Download SDL if not cached
+      run: |
+        if (-Not (Test-Path C:\SDL3-${{ env.SDL3_VERSION }}))
+        {
+            Invoke-WebRequest "https://github.com/libsdl-org/SDL/releases/download/preview-$env:SDL3_VERSION/SDL3-devel-$env:SDL3_VERSION-VC.zip" -OutFile C:\SDL.zip
+            Expand-Archive C:\SDL.zip -DestinationPath C:\
+        }
 
-      - name: Download SDL
-        run: |
-          curl -LO https://github.com/libsdl-org/SDL/releases/download/preview-$SDL3_VERSION/SDL3-devel-$SDL3_VERSION-mingw.tar.xz
-          tar -xvf SDL3-devel-$SDL3_VERSION-mingw.tar.xz -C ${GITHUB_WORKSPACE}
+    - name: CMake configure (Debug)
+      run: |
+        $env:LDFLAGS =  "/LIBPATH:C:\SDL3-$env:SDL3_VERSION\lib\x64 "
+        cmake -B debug -G "Visual Studio 17 2022" . -DCMAKE_BUILD_TYPE:STRING=Debug `
+          -A x64 `
+          -DSDL3_DIR="C:\SDL3-$env:SDL3_VERSION\cmake" `
 
-      - name: CMake configure 64-bit (Release)
-        run: mingw64-cmake -B release -G Ninja . -DCMAKE_BUILD_TYPE=Release -DSDL3_DIR=${GITHUB_WORKSPACE}/SDL3-$SDL3_VERSION/cmake
+    - name: Build (Debug)
+      run: cmake --build debug --config Debug
 
-      - name: Build 64-bit (Release)
-        run: ninja -C release
+    - name: CMake configure (Release)
+      run: |
+        $env:LDFLAGS =  "/LIBPATH:C:\SDL3-$env:SDL3_VERSION\lib\x64 "
+        cmake -B release -G "Visual Studio 17 2022" . -DCMAKE_BUILD_TYPE:STRING=Release `
+          -A x64 `
+          -DSDL3_DIR="C:\SDL3-$env:SDL3_VERSION\cmake" `
 
-      - name: Archive build result 64-bit
-        uses: actions/upload-artifact@v4
-        with:
-          name: Wellspring-x64
-          path: release/Wellspring.dll
+    - name: Build (Release)
+      run: cmake --build release --config Release
 
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: release/Wellspring.dll
+    - name: Archive build result
+      uses: actions/upload-artifact@v4
+      with:
+        name: Wellspring-msvc-x64
+        path: release/Release/Wellspring.dll
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: release/Release/Wellspring.dll
 
   macos:
     name: macOS (CMake)
