@@ -351,9 +351,32 @@ Wellspring_Font* Wellspring_CreateFont(
 		return NULL;
 	}
 
-	json_object_t *atlasObject = json_value_as_object(jsonObject->start->value);
-	json_object_t *metricsObject = json_value_as_object(jsonObject->start->next->value);
-	json_array_t *glyphsArray = json_value_as_array(jsonObject->start->next->next->value);
+	json_object_t *atlasObject = json_object_get_object(jsonObject, "atlas");
+	if (atlasObject == NULL) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "atlas object not found!");
+		Wellspring_free(jsonRoot);
+		Wellspring_free(font->fontBytes);
+		Wellspring_free(font);
+		return NULL;
+	}
+
+	json_object_t *metricsObject = json_object_get_object(jsonObject, "metrics");
+	if (metricsObject == NULL) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "atlas object not found!");
+		Wellspring_free(jsonRoot);
+		Wellspring_free(font->fontBytes);
+		Wellspring_free(font);
+		return NULL;
+	}
+
+	json_array_t *glyphsArray = json_value_as_array(json_object_get_element_by_name(jsonObject, "glyphs")->value);
+	if (glyphsArray == NULL) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "%s", "atlas object not found!");
+		Wellspring_free(jsonRoot);
+		Wellspring_free(font->fontBytes);
+		Wellspring_free(font);
+		return NULL;
+	}
 
 	const char* atlasType = json_object_get_string(atlasObject, "type");
 
