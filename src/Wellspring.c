@@ -427,8 +427,10 @@ Wellspring_Font* Wellspring_CreateFont(
 			charRangeIndex += 1;
 			font->packer.rangeCount += 1;
 
-			font->packer.ranges = Wellspring_realloc(font->packer.ranges, sizeof(PackedChar) * (charRangeIndex + 1));
+			font->packer.ranges = Wellspring_realloc(font->packer.ranges, sizeof(CharRange) * (charRangeIndex + 1));
+			font->packer.ranges[charRangeIndex].data = NULL;
 			font->packer.ranges[charRangeIndex].firstCodepoint = codepoint;
+			font->packer.ranges[charRangeIndex].charCount = 0;
 		}
 
 		font->packer.ranges[charRangeIndex].charCount += 1;
