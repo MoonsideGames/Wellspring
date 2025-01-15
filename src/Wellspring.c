@@ -793,12 +793,9 @@ uint8_t Wellspring_AddChunkToTextBatch(
 
 		if (IsNewline(codepoint))
 		{
-			SDL_Log("%s", "newline detected");
-			SDL_Log("old y: %f", y);
 			y += sizeFactor * currentFont->lineHeight * currentFont->scale;
 			x = initialX;
 			previousGlyphIndex = -1;
-			SDL_Log("new y: %f", y);
 			continue;
 		}
 
