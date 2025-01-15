@@ -71,16 +71,11 @@ typedef struct Wellspring_FontRange
 	uint8_t oversampleV;
 } Wellspring_FontRange;
 
-typedef struct Wellspring_Color
-{
-	uint8_t r, g, b, a;
-} Wellspring_Color;
-
 typedef struct Wellspring_Vertex
 {
-	float x, y, z;
+	float x, y;
 	float u, v;
-	uint8_t r, g, b, a;
+	uint32_t chunkIndex;
 } Wellspring_Vertex;
 
 typedef struct Wellspring_Rectangle
@@ -122,8 +117,7 @@ WELLSPRINGAPI Wellspring_TextBatch* Wellspring_CreateTextBatch(void);
 
 /* Also restarts the batch */
 WELLSPRINGAPI void Wellspring_StartTextBatch(
-	Wellspring_TextBatch *textBatch,
-	Wellspring_Font *font
+	Wellspring_TextBatch *textBatch
 );
 
 WELLSPRINGAPI uint8_t Wellspring_TextBounds(
@@ -136,10 +130,10 @@ WELLSPRINGAPI uint8_t Wellspring_TextBounds(
 	Wellspring_Rectangle *pRectangle
 );
 
-WELLSPRINGAPI uint8_t Wellspring_AddToTextBatch(
+WELLSPRINGAPI uint8_t Wellspring_AddChunkToTextBatch(
 	Wellspring_TextBatch *textBatch,
+	Wellspring_Font *font,
 	int pixelSize,
-	Wellspring_Color *color,
 	Wellspring_HorizontalAlignment horizontalAlignment,
 	Wellspring_VerticalAlignment verticalAlignment,
 	const uint8_t *strBytes,
@@ -149,10 +143,7 @@ WELLSPRINGAPI uint8_t Wellspring_AddToTextBatch(
 WELLSPRINGAPI void Wellspring_GetBufferData(
 	Wellspring_TextBatch *textBatch,
 	uint32_t* pVertexCount,
-	Wellspring_Vertex **pVertexBuffer,
-	uint32_t *pVertexBufferLengthInBytes,
-	uint32_t **pIndexBuffer,
-	uint32_t *pIndexBufferLengthInBytes
+	Wellspring_Vertex **pVertexBuffer
 );
 
 WELLSPRINGAPI void Wellspring_DestroyTextBatch(Wellspring_TextBatch *textBatch);

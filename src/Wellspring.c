@@ -137,11 +137,7 @@ typedef struct Batch
 	uint32_t vertexCount;
 	uint32_t vertexCapacity;
 
-	uint32_t *indices;
-	uint32_t indexCount;
-	uint32_t indexCapacity;
-
-	Font *currentFont;
+	uint32_t chunkCount;
 } Batch;
 
 typedef struct Quad
@@ -489,21 +485,15 @@ Wellspring_TextBatch* Wellspring_CreateTextBatch(void)
 	batch->vertices = Wellspring_malloc(sizeof(Wellspring_Vertex) * batch->vertexCapacity);
 	batch->vertexCount = 0;
 
-	batch->indexCapacity = INITIAL_QUAD_CAPACITY * 6;
-	batch->indices = Wellspring_malloc(sizeof(uint32_t) * batch->indexCapacity);
-	batch->indexCount = 0;
-
 	return (Wellspring_TextBatch*) batch;
 }
 
 void Wellspring_StartTextBatch(
-	Wellspring_TextBatch *textBatch,
-	Wellspring_Font *font
+	Wellspring_TextBatch *textBatch
 ) {
 	Batch *batch = (Batch*) textBatch;
-	batch->currentFont = (Font*) font;
 	batch->vertexCount = 0;
-	batch->indexCount = 0;
+	batch->chunkCount = 0;
 }
 
 static float Wellspring_INTERNAL_GetVerticalAlignOffset(
@@ -722,18 +712,18 @@ uint8_t Wellspring_TextBounds(
 	);
 }
 
-uint8_t Wellspring_AddToTextBatch(
+uint8_t Wellspring_AddChunkToTextBatch(
 	Wellspring_TextBatch *textBatch,
+	Wellspring_Font *font,
 	int pixelSize,
-	Wellspring_Color *color,
 	Wellspring_HorizontalAlignment horizontalAlignment,
 	Wellspring_VerticalAlignment verticalAlignment,
 	const uint8_t *strBytes,
 	uint32_t strLengthInBytes
 ) {
 	Batch *batch = (Batch*) textBatch;
-	Font *font = batch->currentFont;
-	Packer *myPacker = &font->packer;
+	Font *currentFont = (Font *)font;
+	Packer *myPacker = &currentFont->packer;
 	uint32_t decodeState = 0;
 	uint32_t codepoint;
 	int32_t glyphIndex;
@@ -742,18 +732,17 @@ uint8_t Wellspring_AddToTextBatch(
 	PackedChar *rangeData;
 	Quad charQuad;
 	uint32_t vertexBufferIndex;
-	uint32_t indexBufferIndex;
 	Wellspring_Rectangle bounds;
 	uint32_t i, j;
-	float sizeFactor = pixelSize / font->pixelsPerEm;
+	float sizeFactor = pixelSize / currentFont->pixelsPerEm;
 	float x = 0, y = 0;
 
-	y -= Wellspring_INTERNAL_GetVerticalAlignOffset(font, verticalAlignment, sizeFactor * font->scale);
+	y -= Wellspring_INTERNAL_GetVerticalAlignOffset(currentFont, verticalAlignment, sizeFactor * currentFont->scale);
 
 	/* FIXME: If we horizontally align, we have to decode and process glyphs twice, very inefficient. */
 	if (horizontalAlignment == WELLSPRING_HORIZONTALALIGNMENT_RIGHT)
 	{
-		if (!Wellspring_Internal_TextBounds(font, pixelSize, horizontalAlignment, verticalAlignment, strBytes, strLengthInBytes, &bounds))
+		if (!Wellspring_Internal_TextBounds(currentFont, pixelSize, horizontalAlignment, verticalAlignment, strBytes, strLengthInBytes, &bounds))
 		{
 			/* Something went wrong while calculating bounds. */
 			return 0;
@@ -763,7 +752,7 @@ uint8_t Wellspring_AddToTextBatch(
 	}
 	else if (horizontalAlignment == WELLSPRING_HORIZONTALALIGNMENT_CENTER)
 	{
-		if (!Wellspring_Internal_TextBounds(font, pixelSize, horizontalAlignment, verticalAlignment, strBytes, strLengthInBytes, &bounds))
+		if (!Wellspring_Internal_TextBounds(currentFont, pixelSize, horizontalAlignment, verticalAlignment, strBytes, strLengthInBytes, &bounds))
 		{
 			/* Something went wrong while calculating bounds. */
 			return 0;
@@ -809,21 +798,21 @@ uint8_t Wellspring_AddToTextBatch(
 		if (IsWhitespace(codepoint))
 		{
 			PackedChar *packedChar = rangeData + rangeIndex;
-			x += sizeFactor * font->scale * packedChar->xAdvance;
+			x += sizeFactor * currentFont->scale * packedChar->xAdvance;
 			previousGlyphIndex = -1;
 			continue;
 		}
 
-		glyphIndex = stbtt_FindGlyphIndex(&font->fontInfo, codepoint);
+		glyphIndex = stbtt_FindGlyphIndex(&currentFont->fontInfo, codepoint);
 
 		if (previousGlyphIndex != -1)
 		{
-			x += sizeFactor * font->kerningScale * font->scale * stbtt_GetGlyphKernAdvance(&font->fontInfo, previousGlyphIndex, glyphIndex);
+			x += sizeFactor * currentFont->kerningScale * currentFont->scale * stbtt_GetGlyphKernAdvance(&currentFont->fontInfo, previousGlyphIndex, glyphIndex);
 		}
 
 		GetPackedQuad(
 			rangeData,
-			sizeFactor * font->scale,
+			sizeFactor * currentFont->scale,
 			myPacker->width,
 			myPacker->height,
 			rangeIndex,
@@ -838,67 +827,38 @@ uint8_t Wellspring_AddToTextBatch(
 			batch->vertices = Wellspring_realloc(batch->vertices, sizeof(Wellspring_Vertex) * batch->vertexCapacity);
 		}
 
-		if (batch->indexCount >= batch->indexCapacity)
-		{
-			batch->indexCapacity *= 2;
-			batch->indices = Wellspring_realloc(batch->indices, sizeof(uint32_t) * batch->indexCapacity);
-		}
-
 		vertexBufferIndex = batch->vertexCount;
-		indexBufferIndex = batch->indexCount;
 
 		batch->vertices[vertexBufferIndex].x = charQuad.x0;
 		batch->vertices[vertexBufferIndex].y = charQuad.y0;
-		batch->vertices[vertexBufferIndex].z = 0;
 		batch->vertices[vertexBufferIndex].u = charQuad.s0;
 		batch->vertices[vertexBufferIndex].v = charQuad.t0;
-		batch->vertices[vertexBufferIndex].r = color->r;
-		batch->vertices[vertexBufferIndex].g = color->g;
-		batch->vertices[vertexBufferIndex].b = color->b;
-		batch->vertices[vertexBufferIndex].a = color->a;
+		batch->vertices[vertexBufferIndex].chunkIndex = batch->chunkCount;
 
 		batch->vertices[vertexBufferIndex + 1].x = charQuad.x0;
 		batch->vertices[vertexBufferIndex + 1].y = charQuad.y1;
-		batch->vertices[vertexBufferIndex + 1].z = 0;
 		batch->vertices[vertexBufferIndex + 1].u = charQuad.s0;
 		batch->vertices[vertexBufferIndex + 1].v = charQuad.t1;
-		batch->vertices[vertexBufferIndex + 1].r = color->r;
-		batch->vertices[vertexBufferIndex + 1].g = color->g;
-		batch->vertices[vertexBufferIndex + 1].b = color->b;
-		batch->vertices[vertexBufferIndex + 1].a = color->a;
+		batch->vertices[vertexBufferIndex + 1].chunkIndex = batch->chunkCount;
 
 		batch->vertices[vertexBufferIndex + 2].x = charQuad.x1;
 		batch->vertices[vertexBufferIndex + 2].y = charQuad.y0;
-		batch->vertices[vertexBufferIndex + 2].z = 0;
 		batch->vertices[vertexBufferIndex + 2].u = charQuad.s1;
 		batch->vertices[vertexBufferIndex + 2].v = charQuad.t0;
-		batch->vertices[vertexBufferIndex + 2].r = color->r;
-		batch->vertices[vertexBufferIndex + 2].g = color->g;
-		batch->vertices[vertexBufferIndex + 2].b = color->b;
-		batch->vertices[vertexBufferIndex + 2].a = color->a;
+		batch->vertices[vertexBufferIndex + 2].chunkIndex = batch->chunkCount;
 
 		batch->vertices[vertexBufferIndex + 3].x = charQuad.x1;
 		batch->vertices[vertexBufferIndex + 3].y = charQuad.y1;
-		batch->vertices[vertexBufferIndex + 3].z = 0;
 		batch->vertices[vertexBufferIndex + 3].u = charQuad.s1;
 		batch->vertices[vertexBufferIndex + 3].v = charQuad.t1;
-		batch->vertices[vertexBufferIndex + 3].r = color->r;
-		batch->vertices[vertexBufferIndex + 3].g = color->g;
-		batch->vertices[vertexBufferIndex + 3].b = color->b;
-		batch->vertices[vertexBufferIndex + 3].a = color->a;
-
-		batch->indices[indexBufferIndex]     = vertexBufferIndex;
-		batch->indices[indexBufferIndex + 1] = vertexBufferIndex + 1;
-		batch->indices[indexBufferIndex + 2] = vertexBufferIndex + 2;
-		batch->indices[indexBufferIndex + 3] = vertexBufferIndex + 2;
-		batch->indices[indexBufferIndex + 4] = vertexBufferIndex + 1;
-		batch->indices[indexBufferIndex + 5] = vertexBufferIndex + 3;
+		batch->vertices[vertexBufferIndex + 3].chunkIndex = batch->chunkCount;
 
 		batch->vertexCount += 4;
-		batch->indexCount += 6;
 
 		previousGlyphIndex = glyphIndex;
 	}
+
+	batch->chunkCount += 1;
 
 	return 1;
 }
@@ -906,24 +866,17 @@ uint8_t Wellspring_AddToTextBatch(
 void Wellspring_GetBufferData(
 	Wellspring_TextBatch *textBatch,
 	uint32_t *pVertexCount,
-	Wellspring_Vertex **pVertexBuffer,
-	uint32_t *pVertexBufferLengthInBytes,
-	uint32_t **pIndexBuffer,
-	uint32_t *pIndexBufferLengthInBytes
+	Wellspring_Vertex **pVertexBuffer
 ) {
 	Batch *batch = (Batch*) textBatch;
 	*pVertexCount = batch->vertexCount;
 	*pVertexBuffer = batch->vertices;
-	*pVertexBufferLengthInBytes = batch->vertexCount * sizeof(Wellspring_Vertex);
-	*pIndexBuffer = batch->indices;
-	*pIndexBufferLengthInBytes = batch->indexCount * sizeof(uint32_t);
 }
 
 void Wellspring_DestroyTextBatch(Wellspring_TextBatch *textBatch)
 {
 	Batch *batch = (Batch*) textBatch;
 	Wellspring_free(batch->vertices);
-	Wellspring_free(batch->indices);
 	Wellspring_free(batch);
 }
 
