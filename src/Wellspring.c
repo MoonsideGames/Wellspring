@@ -541,6 +541,11 @@ static inline uint32_t IsWhitespace(uint32_t codepoint)
 	}
 }
 
+static inline uint32_t IsNewline(uint32_t codepoint)
+{
+	return codepoint == '\n';
+}
+
 static void GetPackedQuad(PackedChar *charData, float scale, int packerWidth, int packerHeight, int charIndex, float *xPos, float *yPos, Quad *q)
 {
 	float texelWidth = 1.0f / packerWidth, texelHeight = 1.0f / packerHeight;
@@ -613,6 +618,24 @@ static uint8_t Wellspring_Internal_TextBounds(
 			continue;
 		}
 
+		if (IsNewline(codepoint))
+		{
+			y += sizeFactor * font->lineHeight * font->scale;
+			maxY += sizeFactor * font->lineHeight * font->scale;
+			x = 0;
+			previousGlyphIndex = -1;
+			continue;
+		}
+
+		if (IsWhitespace(codepoint))
+		{
+			PackedChar *packedChar = rangeData + rangeIndex;
+			x += sizeFactor * font->scale * packedChar->xAdvance;
+			maxX += sizeFactor * font->scale * packedChar->xAdvance;
+			previousGlyphIndex = -1;
+			continue;
+		}
+
 		rangeData = NULL;
 
 		Packer *packer = &font->packer;
@@ -634,15 +657,6 @@ static uint8_t Wellspring_Internal_TextBounds(
 		{
 			/* Requested char wasn't packed! */
 			return 0;
-		}
-
-		if (IsWhitespace(codepoint))
-		{
-			PackedChar *packedChar = rangeData + rangeIndex;
-			x += sizeFactor * font->scale * packedChar->xAdvance;
-			maxX += sizeFactor * font->scale * packedChar->xAdvance;
-			previousGlyphIndex = -1;
-			continue;
 		}
 
 		glyphIndex = stbtt_FindGlyphIndex(&font->fontInfo, codepoint);
@@ -736,6 +750,7 @@ uint8_t Wellspring_AddChunkToTextBatch(
 	uint32_t i, j;
 	float sizeFactor = pixelSize / currentFont->pixelsPerEm;
 	float x = 0, y = 0;
+	float initialX = 0;
 
 	y -= Wellspring_INTERNAL_GetVerticalAlignOffset(currentFont, verticalAlignment, sizeFactor * currentFont->scale);
 
@@ -748,7 +763,7 @@ uint8_t Wellspring_AddChunkToTextBatch(
 			return 0;
 		}
 
-		x -= bounds.w;
+		initialX = -bounds.w;
 	}
 	else if (horizontalAlignment == WELLSPRING_HORIZONTALALIGNMENT_CENTER)
 	{
@@ -758,8 +773,10 @@ uint8_t Wellspring_AddChunkToTextBatch(
 			return 0;
 		}
 
-		x -= bounds.w * 0.5f;
+		initialX = -bounds.w * 0.5f;
 	}
+
+	x = initialX;
 
 	for (i = 0; i < strLengthInBytes; i += 1)
 	{
@@ -771,6 +788,25 @@ uint8_t Wellspring_AddChunkToTextBatch(
 				return 0;
 			}
 
+			continue;
+		}
+
+		if (IsNewline(codepoint))
+		{
+			SDL_Log("%s", "newline detected");
+			SDL_Log("old y: %f", y);
+			y += sizeFactor * currentFont->lineHeight * currentFont->scale;
+			x = initialX;
+			previousGlyphIndex = -1;
+			SDL_Log("new y: %f", y);
+			continue;
+		}
+
+		if (IsWhitespace(codepoint))
+		{
+			PackedChar *packedChar = rangeData + rangeIndex;
+			x += sizeFactor * currentFont->scale * packedChar->xAdvance;
+			previousGlyphIndex = -1;
 			continue;
 		}
 
@@ -793,14 +829,6 @@ uint8_t Wellspring_AddChunkToTextBatch(
 		{
 			/* Requested char wasn't packed! */
 			return 0;
-		}
-
-		if (IsWhitespace(codepoint))
-		{
-			PackedChar *packedChar = rangeData + rangeIndex;
-			x += sizeFactor * currentFont->scale * packedChar->xAdvance;
-			previousGlyphIndex = -1;
-			continue;
 		}
 
 		glyphIndex = stbtt_FindGlyphIndex(&currentFont->fontInfo, codepoint);
