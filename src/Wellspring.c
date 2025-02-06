@@ -627,15 +627,6 @@ static uint8_t Wellspring_Internal_TextBounds(
 			continue;
 		}
 
-		if (IsWhitespace(codepoint))
-		{
-			PackedChar *packedChar = rangeData + rangeIndex;
-			x += sizeFactor * font->scale * packedChar->xAdvance;
-			maxX += sizeFactor * font->scale * packedChar->xAdvance;
-			previousGlyphIndex = -1;
-			continue;
-		}
-
 		rangeData = NULL;
 
 		Packer *packer = &font->packer;
@@ -657,6 +648,15 @@ static uint8_t Wellspring_Internal_TextBounds(
 		{
 			/* Requested char wasn't packed! */
 			return 0;
+		}
+
+		if (IsWhitespace(codepoint))
+		{
+			PackedChar *packedChar = rangeData + rangeIndex;
+			x += sizeFactor * font->scale * packedChar->xAdvance;
+			maxX += sizeFactor * font->scale * packedChar->xAdvance;
+			previousGlyphIndex = -1;
+			continue;
 		}
 
 		glyphIndex = stbtt_FindGlyphIndex(&font->fontInfo, codepoint);
@@ -799,14 +799,6 @@ uint8_t Wellspring_AddChunkToTextBatch(
 			continue;
 		}
 
-		if (IsWhitespace(codepoint))
-		{
-			PackedChar *packedChar = rangeData + rangeIndex;
-			x += sizeFactor * currentFont->scale * packedChar->xAdvance;
-			previousGlyphIndex = -1;
-			continue;
-		}
-
 		rangeData = NULL;
 
 		/* Find the packed char data */
@@ -826,6 +818,14 @@ uint8_t Wellspring_AddChunkToTextBatch(
 		{
 			/* Requested char wasn't packed! */
 			return 0;
+		}
+
+		if (IsWhitespace(codepoint))
+		{
+			PackedChar *packedChar = rangeData + rangeIndex;
+			x += sizeFactor * currentFont->scale * packedChar->xAdvance;
+			previousGlyphIndex = -1;
+			continue;
 		}
 
 		glyphIndex = stbtt_FindGlyphIndex(&currentFont->fontInfo, codepoint);
