@@ -646,8 +646,12 @@ static uint8_t Wellspring_Internal_TextBounds(
 
 		if (rangeData == NULL)
 		{
-			/* Requested char wasn't packed! */
-			return 0;
+			// Requested char wasn't packed!
+			// Just treat this like whitespace for now.
+			x += sizeFactor * font->scale * 0.2;
+			maxX += sizeFactor * font->scale * 0.2;
+			previousGlyphIndex = -1;
+			continue;
 		}
 
 		if (IsWhitespace(codepoint))
@@ -816,8 +820,11 @@ uint8_t Wellspring_AddChunkToTextBatch(
 
 		if (rangeData == NULL)
 		{
-			/* Requested char wasn't packed! */
-			return 0;
+			// Requested char wasn't packed!
+			// Just treat this like whitespace for now.
+			x += sizeFactor * currentFont->scale * 0.2;
+			previousGlyphIndex = -1;
+			continue;
 		}
 
 		if (IsWhitespace(codepoint))
